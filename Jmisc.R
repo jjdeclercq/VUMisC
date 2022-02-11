@@ -1,7 +1,4 @@
-### Note: as of 2/10/2022 this version of the file is no longer being updated.
-## I moved the current version to github
-
-
+# devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
 
 ## To update R
 
