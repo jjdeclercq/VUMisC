@@ -547,6 +547,23 @@ jgtt <- function(dat){
 }
 
 ##### RMS summary
+# Easily make tribble to label plot/ table
+
+rms.trib <- function(rms.fit){
+  # term = variable name
+  # new = plot/ table labels
+  # level = order
+  # label = label if interaction applied
+  
+  top <- "trib.cols.rms <- tribble(~term, ~new, ~level, ~label,\n"
+  middle <- data.frame(term = rms.fit$Design$name, new = rms.fit$Design$label, 
+                       level = 1:length(rms.fit$Design$name), label = rms.fit$Design$label) %>% 
+    mutate(x = paste("            '", paste(term, new, level, label, sep = "', '"),"',\n", sep = "")) %$% x
+  middle[length(middle)] <- gsub(",\n", ")", middle[length(middle)])
+  cat(top, middle)
+  
+}
+
 ## Maybe break into 3 separate pieces?
 
 rms.sum.frame <- function(summary, plot = FALSE, trib, breaks = seq(0.6, 2, .2), int = TRUE){
@@ -565,7 +582,7 @@ rms.sum.frame <- function(summary, plot = FALSE, trib, breaks = seq(0.6, 2, .2),
   names(res) <- c("term", "low", "high", "diff", "effect", "std.error", "conf.low", "conf.high", "type")
   res$term <- trimws(res$term)
   
-  res <- res %>%
+  res <- res %>% 
     ## Separate variable names from adjust-to values
     separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
     ## Create character versions of all low/high values for each row
