@@ -2,7 +2,7 @@
 
 ## To update R
 
-# updateR::updateR(admin_password = 'Use your computer password!')
+# installr::updateR(admin_password = 'Use your computer password!')
 
 model.est.logistic <- function(FIT)
 { est <- coef(FIT)
@@ -510,9 +510,30 @@ gtcap <- function(dat, cap = "CAPTION"){
 }
 
 
+# jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, force.continuous = FALSE){
+#   {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
+#   {if(order.cat) dat %<>% mutate(across(is.factor|is.character, ~fct_infreq(factor(.x))))}
+#   
+#   
+#   TYPE <-  list( all_dichotomous() ~ "categorical")
+#   if(force.continuous) {TYPE[[2]] <- where(is.numeric) ~ "continuous2"}
+#   
+#   dat  %>%
+#     tbl_summary(type = TYPE,
+#                 digits = list(all_continuous() ~ c(Digits, Digits)),
+#                 by = !!by,
+#                 missing = "ifany",
+#                 missing_text = "Missing")%>%
+#     bold_labels() %>%
+#     add_n() %>% 
+#     {if(add.p) add_p(.) else .}  %>% 
+#     {if(overall) add_overall(., last = TRUE) else .} 
+# }
+#   
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, force.continuous = FALSE){
   {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
-  {if(order.cat) dat %<>% mutate(across(is.factor|is.character, ~fct_infreq(factor(.x))))}
+  sort <- NULL
+  {if(order.cat) sort = all_categorical() ~ "frequency"}
   
   
   TYPE <-  list( all_dichotomous() ~ "categorical")
@@ -520,6 +541,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   
   dat  %>%
     tbl_summary(type = TYPE,
+                sort = sort,
                 digits = list(all_continuous() ~ c(Digits, Digits)),
                 by = !!by,
                 missing = "ifany",
@@ -529,7 +551,6 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
     {if(add.p) add_p(.) else .}  %>% 
     {if(overall) add_overall(., last = TRUE) else .} 
 }
-  
 
 jgtt <- function(dat){
   dat %>% gt() %>%
