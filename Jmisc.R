@@ -324,6 +324,19 @@ clear.labels <- function(x) {
   return(x)
 }
 
+## Remove "labelled" class but preserves attributes
+clear.label.class <- function(x) {
+  if(is.list(x)) {
+    for(i in 1 : length(x)) class(x[[i]]) <- setdiff(class(x[[i]]), 'labelled') 
+    # for(i in 1 : length(x)) attr(x[[i]],"label") <- NULL
+  }
+  else {
+    class(x) <- setdiff(class(x), "labelled")
+    # attr(x, "label") <- NULL
+  }
+  return(x)
+}
+
 ## Data table helper function 
 j.datatable <- function(X, caption = NULL, nrow = 10, width = 1000)   {
   datatable(X,caption = caption, options = list(pageLength = nrow,
