@@ -879,3 +879,43 @@ checkbox.upset2 <- function(dat, selection, id.vars = "study_id"){
     select(-name, -id.vars) %>%
     as.data.frame() %>% UpSetR::upset(., nsets = 20, nintersects = 30)
 }
+
+
+rms.sum.table <- function(summary, trib){
+  
+  res <- tibble::as_tibble(summary, rownames = "term")
+  names(res) <- c("term", "low", "high", "diff", "effect", "std.error", "conf.low", "conf.high", "type")
+  res$term <- trimws(res$term)
+  
+  res <- res %>% 
+    ## Separate variable names from adjust-to values
+    separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
+    ## Create character versions of all low/high values for each row
+    mutate(vt = ifelse(!is.na(diff), "Continuous", "Categorical"),
+           highc = ifelse(!is.na(highc), highc,
+                          ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
+                                 as.character(round(high, 2)))),
+           highc = ifelse(is.na(highc), dplyr::lag(highc), highc),
+           lowc = ifelse(!is.na(lowc), lowc,
+                         ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
+                                as.character(round(low, 2)))),
+           lowc = ifelse(is.na(lowc), dplyr::lag(lowc), lowc),
+           ## "term" will temporarily be "variable, [coef or ratio]"
+           term = ifelse(term %in% c("Hazard Ratio", "Odds Ratio"),
+                         sprintf("%s, ratio", dplyr::lag(term)),
+                         sprintf("%s, coef", term))) %>%
+    dplyr::select(-type, -low, -high) %>%
+    separate(term, into = c("term", "type"), sep = ", ") %>%
+    filter(type == "ratio") %>%
+    left_join(., trib, by = "term" ) %>%
+    mutate(facet = ifelse(vt == "Continuous", new, paste(new, lowc, sep = "\n Ref: ")),
+           facet = fct_reorder(facet, level, min),
+           axis = ifelse(vt == "Continuous", paste(highc, lowc, sep = " vs. "), highc))
+  res
+}
+  
+  
+  
+  
+  
+  
