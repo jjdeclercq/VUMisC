@@ -340,7 +340,7 @@ clear.label.class <- function(x) {
 ## Data table helper function 
 j.datatable <- function(X, caption = NULL, nrow = 10, width = 1000)   {
   datatable(X,caption = caption, options = list(pageLength = nrow,
-      autoWidth = TRUE,
+      autoWidth = TRUE, scrollX = TRUE,
       initComplete = JS(
         "function(settings, json) {",
         "$(this.api().tables().body()).css({'font-size': '11px'});",
