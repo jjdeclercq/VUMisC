@@ -821,6 +821,17 @@ espn <- function(font_family = "Arial",
   )
 }
 
+j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, striped = TRUE, compact = TRUE, highlight = TRUE,sortable = TRUE, ...){
+  dat %>% 
+    {if(col.names) sjlabelled::label_to_colnames(.)else .}  %>% 
+  reactable(data = ., searchable = searchable, resizable = resizable, sortable= sortable,
+            striped = striped, compact = compact, highlight = highlight, theme = espn(), ...)
+}
+
+react.cap <- function(table,caption,font_size = 18, font_weight = "normal", ...){
+  table %>% add_title(caption,
+                      font_size = font_size, font_weight = font_weight, ...)
+}
 ## TGS namify
 #' Converts hogwash variable names to proper variable names.
 #' 
