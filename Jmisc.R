@@ -119,7 +119,7 @@ j.scribe <- function(x, desc, scroll = TRUE) {
   else{Hmisc::html(Hmisc::describe(x, descript = desc), file = "", scroll = scroll)}
 }
 
-######### labeling factors#############
+
 LAB <- function(df, var){
   open <- paste(deparse(substitute(df)), "<- within(",deparse(substitute(df)), ",{\n")
   close <- "})"
@@ -134,7 +134,6 @@ LAB <- function(df, var){
   # 
   cat(open,X, close)
 }
-#################################
 
 # Code to help set labels
 
@@ -458,7 +457,7 @@ my.render.cont_D <- function(x, d) {
                         "min, max "=sprintf("[%s, %s]", MIN, MAX))))
 }
 
-# ### This is a good start at listing the number of functions/ packages used in an r scriptc############
+# ### This is a good start at listing the number of functions/ packages used in an r script
 # ## Exports the file into temp file
 # knitr::purl("encobini.Rmd", "test.R", documentation = 2)
 # 
@@ -471,7 +470,7 @@ my.render.cont_D <- function(x, d) {
 # 
 # ## This function creates a list of functions used by package (though it ignores magrittr)
 # NCmisc::list.functions.in.file("test.R", alphabetic = TRUE)
-#############################
+
 
 
 ####### gtsummary custom theme
@@ -661,7 +660,7 @@ rms.sum.frame <- function(summary, plot = FALSE, trib, breaks = seq(0.6, 2, .2),
     labs(caption = cap)
   
   res.table <- res %>% arrange(level)%>% mutate(levels = paste(highc, lowc, sep = " vs. ")) %>% 
-    select(label, levels, effect, conf.low, conf.high)%>% mutate(across(is.numeric, ~round(.x, 3))) %>% 
+    select(label, levels, effect, conf.low, conf.high)%>% mutate(across(where(is.numeric), ~round(.x, 3))) %>% 
     jable(., caption = "Model summary") %>% kableExtra::collapse_rows(., columns = 1) 
   
   if(int == TRUE){ res.table <- res.table %>% kableExtra::add_footnote(., label = cap)}
@@ -821,11 +820,25 @@ espn <- function(font_family = "Arial",
   )
 }
 
-j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, striped = TRUE, compact = TRUE, highlight = TRUE,sortable = TRUE, ...){
-  dat %>% 
+j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, 
+                        striped = TRUE, compact = TRUE, highlight = TRUE,sortable = TRUE, csv.file = NULL, ...){
+  
+  output <- dat %>% 
     {if(col.names) sjlabelled::label_to_colnames(.)else .}  %>% 
-  reactable(data = ., searchable = searchable, resizable = resizable, sortable= sortable,
-            striped = striped, compact = compact, highlight = highlight, theme = espn(), ...)
+    reactable(data = ., searchable = searchable, resizable = resizable, sortable= sortable,
+              striped = striped, compact = compact, highlight = highlight, theme = espn(), elementId = csv.file, ...)
+  
+  if(!is.null(csv.file)){
+    
+    htmltools::browsable(
+      tagList(
+        tags$button(tagList(fontawesome::fa("download"), "Download as CSV"),
+                    onclick = paste0("Reactable.downloadDataCSV('",csv.file,"', '",csv.file,".csv')")),
+        output))
+  }
+  else{
+    return(output)
+  }
 }
 
 react.cap <- function(table,caption,font_size = 18, font_weight = "normal", ...){
