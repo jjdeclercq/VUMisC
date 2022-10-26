@@ -543,7 +543,8 @@ gtcap <- function(dat, cap = "CAPTION"){
 # }
 #   
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
-                force.continuous = FALSE, missing = "ifany", missing_text = "Missing"){
+                force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
+                spanner.size = NULL, spanner.text = NULL){
   {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
   sort <- NULL
   {if(order.cat) sort = all_categorical() ~ "frequency"}
@@ -552,7 +553,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   TYPE <-  list( all_dichotomous() ~ "categorical")
   if(force.continuous) {TYPE[[2]] <- where(is.numeric) ~ "continuous2"}
   
-  dat  %>%
+ tab <- dat  %>%
     tbl_summary(type = TYPE,
                 sort = sort,
                 digits = list(all_continuous() ~ c(Digits, Digits)),
@@ -562,7 +563,11 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
     bold_labels() %>%
     add_n() %>% 
     {if(add.p) add_p(.) else .}  %>% 
-    {if(overall) add_overall(., last = TRUE) else .} 
+    {if(overall) add_overall(., last = TRUE) else .}
+  
+    if(!is.null(spanner.size)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size)) ~ paste0("**",spanner.text ,"**"))
+ 
+  return(tab)
 }
 
 jgtt <- function(dat){
