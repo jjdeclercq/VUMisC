@@ -370,6 +370,13 @@ remove.blank.columns <- function(dat) {
   dat[,names]
 }
 
+remove.blank.columns2 <- function(dat) {
+  names <- dat %>% dplyr::summarise(across(everything(), .fns = ~sum(.x==""|is.na(.x))==nrow(dat)))%>% 
+    mutate(i = 1) %>% pivot_longer(.,-i) %>% filter(value %in% c(FALSE, NA)) %$% name
+  
+  dat[,names]
+}
+
 ## Fix dates
 fix.dates <- function(dat) {dat %>% mutate(across(all_of(dates[dates %in% names(dat)]), ymd))}
 
@@ -910,6 +917,27 @@ checkbox.upset2 <- function(dat, selection, id.vars = "study_id"){
     as.data.frame() %>% UpSetR::upset(., nsets = 20, nintersects = 30)
 }
 
+checkbox.table3 <- function(dat, selection, id.vars = "study_id", denom = NULL, col.name = "Value"){
+  int <- dat %>% select(id.vars, contains(selection)) %>% 
+    pivot_longer(.,c(-all_of(id.vars)), values_drop_na = TRUE, values_transform = list(value = as.character ))%>%
+    group_by(value) %>% tally() 
+  
+  if(is.null(denom)) {denom <- sum(int$n)}
+  
+  int %<>%
+    mutate( pct =100*n/denom) %>% 
+    janitor::adorn_totals(., where = "row", name = "Total") %>%
+    mutate( pct = paste(round(pct, 1), "%", sep = "")) %>% 
+    select(col.name = value, n, pct) %>%
+    arrange(desc(n)) 
+  
+  names(int)[1] <- col.name
+  
+  int  %>%jgtt() %>%
+    tab_footnote(., paste0("Denominator = ", denom), locations = cells_column_labels(
+      columns = pct
+    ))
+}
 
 rms.sum.table <- function(summary, trib){
   
