@@ -551,7 +551,7 @@ gtcap <- function(dat, cap = "CAPTION"){
 #   
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
-                spanner.size = NULL, spanner.text = NULL, add.n = TRUE){
+                spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column"){
   {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
   sort <- NULL
   {if(order.cat) sort = all_categorical() ~ "frequency"}
@@ -566,7 +566,8 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
                 digits = list(all_continuous() ~ c(Digits, Digits)),
                 by = !!by,
                 missing = missing,
-                missing_text = missing_text)%>%
+                missing_text = missing_text,
+                percent = percent)%>%
     bold_labels() %>%
    {if(add.n) add_n(.) else .}  %>% 
     {if(add.p) add_p(.) else .}  %>% 
