@@ -4,6 +4,9 @@
 
 # installr::updateR(admin_password = 'Use your computer password!')
 
+select <- dplyr::select
+ac <- as.character
+
 model.est.logistic <- function(FIT)
 { est <- coef(FIT)
 ses <- sqrt(diag(vcov(FIT)))
@@ -578,8 +581,11 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   return(tab)
 }
 
-jgtt <- function(dat){
-  dat %>% gt() %>%
+jgtt <- function(dat, col.names = TRUE){
+  
+  dat %>% 
+    {if(col.names) sjlabelled::label_to_colnames(.)else .}  %>% 
+    gt() %>%
     opt_row_striping() %>%
     gt::tab_options(table_body.hlines.color = "white",
                     row.striping.background_color = "#fafafa",
