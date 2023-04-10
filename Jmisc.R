@@ -1242,3 +1242,52 @@ j.redcap_extract <- function(rmd_file, data_path = "../data/", archive_path = ".
        compress ='xz', compression_level=9)
   
 }
+
+
+update.redcap.changelog <- function(id.vars){
+  
+  ## Could update function so that it only runs comparedf when new data is available
+  
+  require(arsenal)
+  
+  Ff <- data.frame(root = "../data/archive/", file = list.files("../data/archive")) %>%
+    mutate(path = paste0(root, file), download.time = file.mtime(path)) %>%
+    arrange(download.time) %>% mutate(n = 1:n(), n.diffs = NA)
+  
+  Dl <- data.frame()
+  Dff <- data.frame()
+  
+  for(i in 2:nrow(Ff)){
+    
+    load(Ff$path[i])
+    p1 <- data
+    load(Ff$path[i-1])
+    p2 <- data
+    
+    Cc <- arsenal::comparedf(p1, p2, by = id.vars)
+    Ff$n.diffs[i] <- n.diffs(Cc)
+    
+    if(n.diffs(Cc) >0){
+      Dl <- bind_rows(Dl, 
+                      diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>% 
+                        mutate(x = ac(Ff$download.time[i]),
+                               y = ac(Ff$download.time[i-1]),
+                               comparison = paste0(i, " vs ", (i-1))))
+      
+      Dff <- bind_rows(Dff,
+                       diffs(Cc) %>%
+                         mutate(x = Ff$download.time[i],
+                                y = Ff$download.time[i-1],
+                                comparison = paste0(i, " vs ", (i-1))))
+    }
+  }
+  Ff %<>% select(file, download.time, n, n.diffs)
+  Dl %<>% select(comparison, var = var.x, n, NAs)
+  Dff %<>% select(comparison, var = var.x, id.vars, values.x, values.y)
+  
+  redcap_changelog <- list(Ff, Dl, Dff)
+  
+  save(redcap_changelog,
+       file="../data/redcap_changelog.rda",
+       compress='xz', compression_level=9)
+}
