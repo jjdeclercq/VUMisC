@@ -1256,6 +1256,8 @@ update.redcap.changelog <- function(id.vars){
   
   Dl <- data.frame()
   Dff <- data.frame()
+  sct <- data.frame()
+  vns <- data.frame()
   
   for(i in 2:nrow(Ff)){
     
@@ -1265,11 +1267,12 @@ update.redcap.changelog <- function(id.vars){
     p2 <- data
     
     Cc <- arsenal::comparedf(p1, p2, by = id.vars)
+    sCc <- summary(Cc)
     Ff$n.diffs[i] <- n.diffs(Cc)
     
     if(n.diffs(Cc) >0){
-      Dl <- bind_rows(Dl, 
-                      diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>% 
+      Dl <- bind_rows(Dl,
+                      diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
                         mutate(x = ac(Ff$download.time[i]),
                                y = ac(Ff$download.time[i-1]),
                                comparison = paste0(i, " vs ", (i-1))))
@@ -1279,15 +1282,27 @@ update.redcap.changelog <- function(id.vars){
                          mutate(x = Ff$download.time[i],
                                 y = Ff$download.time[i-1],
                                 comparison = paste0(i, " vs ", (i-1))))
+      
+      sct <- bind_rows(sct,
+                       sCc$comparison.summary.table %>%
+                         mutate(comparison = paste0(i, " vs ", (i-1))))
+      
+      vns <- bind_rows(vns,
+                       sCc$vars.ns.table %>%
+                         mutate(comparison = paste0(i, " vs ", (i-1))))
     }
   }
   Ff %<>% select(file, download.time, n, n.diffs)
+  sct %<>% 
+    pivot_wider(., values_from = "value", names_from = "comparison")
+  vns %<>% group_by(comparison, version) %>% summarise(n = n(), variable = toString(variable))
   Dl %<>% select(comparison, var = var.x, n, NAs)
   Dff %<>% select(comparison, var = var.x, id.vars, values.x, values.y)
   
-  redcap_changelog <- list(Ff, Dl, Dff)
+  redcap_changelog <- list(Ff,sct, vns, Dl, Dff)
   
   save(redcap_changelog,
        file="../data/redcap_changelog.rda",
        compress='xz', compression_level=9)
 }
+
