@@ -946,6 +946,35 @@ checkbox.table3 <- function(dat, selection, id.vars = "study_id", denom = NULL, 
     ))
 }
 
+
+
+checkbox.by <- function(dat, selection, id.vars = "study_id", by.var = "Total", col.name = "Value", denom){
+  
+  
+  dt <- dat %>% select(id.vars, contains("mod_cyp_inh_after__"))
+  
+  dt[,by.var] <- "Total"
+  
+  int <- dt %>% 
+    {if(by.var != "Total") bind_rows(., dat %>% select(id.vars,by.var, contains("mod_cyp_inh_after__"))) else (.)} %>%
+    pivot_longer(.,c(-all_of(c(id.vars, by.var))), 
+                 values_drop_na = TRUE,
+                 values_transform = list(value = as.character )) %>%
+    group_by(!!sym(id.vars), !!sym(by.var)) %>%mutate(n = 1/n()) %>%
+    group_by(!!sym(by.var)) %>%mutate(denom = sum(n)) %>%
+    group_by(!!sym(by.var), value, denom) %>% tally() %>%
+    mutate( pct =100*n/denom) %>%
+    mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
+    mutate(byv = paste0(!!sym(by.var), "\n (N = ",denom, ")")) %>% ungroup() %>%
+    select(byv, col.name = value, pct) %>%
+    arrange(desc(pct)) %>%
+    pivot_wider(., names_from = "byv", values_from = "pct", values_fill = "0 (0%)") 
+  
+  names(int)[1] <- col.name
+  
+  jgtt(int)
+}
+
 rms.sum.table <- function(summary, trib){
   
   res <- tibble::as_tibble(summary, rownames = "term")
