@@ -1338,3 +1338,21 @@ update.redcap.changelog <- function(id.vars){
        compress='xz', compression_level=9)
 }
 
+
+
+update_redcap_notes <- function() {
+  
+  data <- redcapExport(APIKEY= key_get("notes"),
+                       URI='https://redcap.vanderbilt.edu/api/', 
+                       labels=TRUE, checkboxLabels=TRUE, forms=NULL, 
+                       fields=TRUE, events=NULL)
+  
+  data <- sjlabelled::copy_labels(droplevels(data), data)
+  data <- clear.label.class(data)
+  
+  save(data,
+       file = "/Users/joshvumc/OneDrive - VUMC/Programming/notes/notes.rda",
+       compress ='xz', compression_level=9)
+  
+  return(data)
+}
