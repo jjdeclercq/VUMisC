@@ -1351,7 +1351,7 @@ update_redcap_notes <- function() {
   data <- clear.label.class(data)
   
   save(data,
-       file = "/Users/joshvumc/OneDrive - VUMC/Programming/notes/notes.rda",
+       file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda",
        compress ='xz', compression_level=9)
   
   return(data)
