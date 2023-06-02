@@ -1342,17 +1342,36 @@ update.redcap.changelog <- function(id.vars){
 
 update_redcap_notes <- function() {
   
-  data <- redcapExport(APIKEY= key_get("notes"),
+  notes_data <- redcapExport(APIKEY= key_get("notes"),
                        URI='https://redcap.vanderbilt.edu/api/', 
                        labels=TRUE, checkboxLabels=TRUE, forms=NULL, 
                        fields=TRUE, events=NULL)
   
-  data <- sjlabelled::copy_labels(droplevels(data), data)
-  data <- clear.label.class(data)
   
-  save(data,
+  save(notes_data,
        file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda",
        compress ='xz', compression_level=9)
   
-  return(data)
+  return(notes_data)
 }
+
+print.work.logs <- function(proj){
+  work.logs <- readxl::read_xlsx("/Users/joshvumc/OneDrive - VUMC/Work logs/work log.xlsx", sheet = "Todo")
+  
+  res <- work.logs %>% filter(project == proj) %>%
+    select(date, request, "date done") %>%
+    jgtt() %>% tab_header("Summary of project requests") 
+  
+  return(res)
+  
+}
+
+print.redcap.logs <- function(proj){
+  
+  load(file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda")
+  res <- notes_data %>% filter(project == "Beigene") %>% select(date, comment) %>% 
+    jgtt() %>% tab_header("Redcap study notes")
+  
+  return(res)
+}
+
