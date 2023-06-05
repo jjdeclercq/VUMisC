@@ -1369,9 +1369,29 @@ print.work.logs <- function(proj){
 print.redcap.logs <- function(proj){
   
   load(file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda")
-  res <- notes_data %>% filter(project == "Beigene") %>% select(date, comment) %>% 
+  res <- notes_data %>% filter(project == proj) %>% select(date, comment) %>% 
     jgtt() %>% tab_header("Redcap study notes")
   
   return(res)
 }
 
+redcap_dictionary <- function(file){
+  ddict <- read.csv(file) %>% namify()
+  
+  out <- ddict %>% mutate(Variable = paste(variable___field_name, branching_logic__show_field_only_if____, sep = "<br><br>"),
+                          choice = gsub("\\|", "<br>", choices__calculations__or_slider_labels),
+                          # minmax = ifelse(text_validation_min != "", paste("Min: ", text_validation_min, ", Max:",  text_validation_max), ""),
+                          minmax = "",
+                          attr = ifelse(minmax == "", field_type, paste0(field_type, "<br><br>(",text_validation_type_or_show_slider_number, ", ", minmax, ")" ))) %>% 
+    # mutate(attr = paste(field_type, text_validation_type_or_show_slider_number) )%>%
+    select(form_name, Variable, field_label, attr, choice) %>%
+    j.reactable(., columns = list(Variable = colDef(html = TRUE, width = 150),
+                                  field_label = colDef(html = TRUE, width = 150),
+                                  attr = colDef(html = TRUE, width = 150),
+                                  choice = colDef(html = TRUE, width = 200),
+                                  form_name = colDef(width = 100)),
+                groupBy = "form_name", defaultExpanded = FALSE)
+  
+  return(out)
+  
+}
