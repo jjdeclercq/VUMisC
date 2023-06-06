@@ -1375,8 +1375,8 @@ print.redcap.logs <- function(proj){
   return(res)
 }
 
-redcap_dictionary <- function(file){
-  ddict <- read.csv(file) %>% namify()
+redcap_dictionary <- function(ddict){
+  
   
   out <- ddict %>% mutate(Variable = paste(variable___field_name, branching_logic__show_field_only_if____, sep = "<br><br>"),
                           choice = gsub("\\|", "<br>", choices__calculations__or_slider_labels),
