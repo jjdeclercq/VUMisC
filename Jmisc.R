@@ -1349,14 +1349,14 @@ update_redcap_notes <- function() {
   
   
   save(notes_data,
-       file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda",
+       file = "/Users/joshdeclercq/Library/CloudStorage/OneDrive-VUMC/Work logs/notes/notes.rda",
        compress ='xz', compression_level=9)
   
   return(notes_data)
 }
 
 print.work.logs <- function(proj){
-  work.logs <- readxl::read_xlsx("/Users/joshvumc/OneDrive - VUMC/Work logs/work log.xlsx", sheet = "Todo")
+  work.logs <- readxl::read_xlsx("/Users/joshdeclercq/Library/CloudStorage/OneDrive-VUMC/Work logs/work log.xlsx", sheet = "Todo")
   
   res <- work.logs %>% filter(project == proj) %>%
     select(date, request, "date done") %>%
@@ -1368,7 +1368,7 @@ print.work.logs <- function(proj){
 
 print.redcap.logs <- function(proj){
   
-  load(file = "/Users/joshvumc/OneDrive - VUMC/Work logs/notes/notes.rda")
+  load(file = "/Users/joshdeclercq/Library/CloudStorage/OneDrive-VUMC/Work logs/notes/notes.rda")
   res <- notes_data %>% filter(project == proj) %>% select(date, comment) %>% 
     jgtt() %>% tab_header("Redcap study notes")
   
