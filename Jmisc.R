@@ -1544,10 +1544,10 @@ publish_to_vsp <- function(qmd, output, directory){
   # Pull latest data from redcap
   notes <- update_redcap_notes()
   
-  of <- paste0(Sys.Date()," ", output, ".aspx" )
+  of <- paste0(Sys.Date()," ", output, ".html" )
   
   # rmarkdown::render
-  quarto::quarto_render(input = qmd, 
+  rmarkdown::render(input = qmd, 
                         output_file = of)
   
   # # Quarto does not yet support rendering to different directory -- bleh
