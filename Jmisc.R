@@ -1395,3 +1395,179 @@ redcap_dictionary <- function(ddict){
   return(out)
   
 }
+
+
+changelog <- function(DAT){
+  
+  NEWDAT <- DAT
+  timestamp <- format(Sys.time(), "%Y.%m.%d %H.%M")
+  dat_name <- deparse(substitute(DAT))
+  changelog_path <- paste0("../data/archive/changelog_", dat_name)
+  changelog_file <- paste0(changelog_path, "/changelog_", dat_name, ".rda")
+  archive_path <- paste0(changelog_path, "/",dat_name," " ,timestamp ,".rda")
+  
+  
+  ## First time running function will create directory and save a copy of the data there
+  if(!dir.exists(changelog_path)){
+    
+    dir.create(changelog_path)
+    ARCHIVE <- DAT
+    save(ARCHIVE,
+         file= archive_path,
+         compress='xz', compression_level=9)
+    
+    Ffn <- data.frame(root = changelog_path, file = list.files(changelog_path)) %>%
+      mutate(path = paste(root, file, sep = "/"), download.time = file.mtime(path)) %>%
+      filter(!grepl("changelog", file)) %>%
+      filter(download.time == max(download.time))
+    
+    save(Ffn,
+         file=changelog_file,
+         compress='xz', compression_level=9)
+    
+    return(print(paste("Archive directory created at", changelog_path)))
+  }
+  
+  Ff.new <- data.frame(root = changelog_path, file = list.files(changelog_path)) %>%
+    mutate(path = paste(root, file, sep = "/"), download.time = file.mtime(path)) %>%
+    filter(!grepl("changelog", file)) %>%
+    filter(download.time == max(download.time))
+  
+  # return(NEWDAT)
+  
+  ## Check to see if data are the same between versions
+  load(Ff.new$path)
+  
+  # return(isTRUE(all.equal(ARCHIVE, NEWDAT)))
+  if(isTRUE(all.equal(ARCHIVE, NEWDAT))){
+    return("No changes made to data")
+  } else {
+    
+    
+    
+    load(changelog_file)
+    Ff <- bind_rows(Ffn, Ff.new) %>% mutate(n = 1:n())
+    
+    i <- nrow(Ff)
+    
+    Dl <- data.frame()
+    Dff <- data.frame()
+    sct <- data.frame()
+    vns <- data.frame()
+    
+    Cc <- arsenal::comparedf(NEWDAT, ARCHIVE, by = "x")
+    sCc <- summary(Cc)
+    Ff$n.diffs[i] <- n.diffs(Cc)
+    
+    if(n.diffs(Cc) >0){
+      ## Differences by variable
+      Dl <- bind_rows(Dl,
+                      diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
+                        mutate(x = ac(Ff$download.time[i]),
+                               y = ac(Ff$download.time[i-1]),
+                               comparison = paste0(i, " vs ", (i-1))))
+      ## Individual differences
+      Dff <- bind_rows(Dff,
+                       diffs(Cc) %>%
+                         mutate(x = Ff$download.time[i],
+                                y = Ff$download.time[i-1],
+                                comparison = paste0(i, " vs ", (i-1))))
+      ## Summaru comparison table
+      sct <- bind_rows(sct,
+                       sCc$comparison.summary.table %>%
+                         mutate(comparison = paste0(i, " vs ", (i-1))))
+      
+      ## variables not shared
+      vns <- bind_rows(vns,
+                       sCc$vars.ns.table %>%
+                         mutate(comparison = paste0(i, " vs ", (i-1))))
+      
+      Ff %<>% select(file, download.time, n, n.diffs)
+      # sct %<>%
+      #   pivot_wider(., values_from = "value", names_from = "comparison")
+      # vns %<>% group_by(comparison, version) %>% summarise(n = n(), variable = toString(variable), .groups = "drop")
+      Dl %<>% select(comparison, var = var.x, n, NAs)
+      Dff %<>% select(comparison, var = var.x, x, values.x, values.y)
+    }
+    
+    
+    
+    changelog_output_file <- paste0(changelog_path, "/changelog_output_", dat_name, ".rda")
+    if(!file.exists(changelog_output_file)){
+      Ffi <- data.frame()
+      Dli <- data.frame()
+      Dffi <- data.frame()
+      scti <- data.frame()
+      vnsi <- data.frame()
+    }else{
+      load(changelog_output_file)
+      Ffi = changelog_output$Ffi
+      scti = changelog_output$scti 
+      vnsi = changelog_output$vnsi 
+      Dli = changelog_output$Dli 
+      Dffi = changelog_output$Dffi
+      
+    }
+    
+    Ffi <- Ff
+    scti <- bind_rows(scti, sct)
+    vnsi <- bind_rows(vnsi, vns)
+    Dli <- bind_rows(Dli, Dl)
+    Dffi <- bind_rows(Dffi, Dff)
+    
+    changelog_output <- list(Ffi = Ffi,scti = scti, vnsi = vnsi, Dli = Dli, Dffi = Dffi)
+    
+    ARCHIVE <- DAT
+    save(ARCHIVE,
+         file=archive_path,
+         compress='xz', compression_level=9)
+    
+    Ffn <- Ff
+    save(Ffn,
+         file=changelog_file,
+         compress='xz', compression_level=9)
+    
+    
+    save(changelog_output,
+         file=changelog_output_file,
+         compress='xz', compression_level=9)
+    
+    return(print("New copy of data saved"))
+  }
+  
+  
+}
+
+publish_to_vsp <- function(qmd, output, directory){
+  ## Publish report to OneDrive for VSP (copied from vpn directory)
+  
+  # Pull latest data from redcap
+  notes <- update_redcap_notes()
+  
+  of <- paste0(Sys.Date()," ", output, ".aspx" )
+  
+  # rmarkdown::render
+  quarto::quarto_render(input = qmd, 
+                        output_file = of)
+  
+  # # Quarto does not yet support rendering to different directory -- bleh
+  file.copy(from = of, to = directory, overwrite = TRUE)
+  
+}
+
+
+
+render_toc <- function(qmd, output){
+  ## Render blank html document with Table of contents only
+  ## Requires eval_code parameter sent to knitr::opts_chunk$set
+  
+  rmarkdown::render(qmd, 
+                    output_file = paste(output, "_toc.html"),
+                    rmarkdown::html_document(toc = TRUE, 
+                                             number_sections = TRUE, 
+                                             pandoc_args = c("-V", 'body=""')),
+                    params = list(eval_code = FALSE))
+}
+
+
+
