@@ -1369,7 +1369,7 @@ print.work.logs <- function(proj){
 print.redcap.logs <- function(proj){
   
   load(file = "/Users/joshdeclercq/Library/CloudStorage/OneDrive-VUMC/Work logs/notes/notes.rda")
-  res <- notes_data %>% filter(project == proj) %>% select(date, comment) %>% 
+  res <- notes_data %>% filter(project == proj) %>% select(name, date, comment) %>% 
     jgtt() %>% tab_header("Redcap study notes")
   
   return(res)
