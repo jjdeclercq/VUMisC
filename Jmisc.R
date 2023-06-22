@@ -573,7 +573,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
                 percent = percent)%>%
     bold_labels() %>%
    {if(add.n) add_n(.) else .}  %>% 
-    {if(add.p) add_p(.) else .}  %>% 
+    {if(add.p) add_p(., pvalue_fun = function(x) style_pvalue(x, digits = 3)) else .}  %>% 
     {if(overall) add_overall(., last = TRUE) else .}
   
     if(!is.null(spanner.size)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size)) ~ paste0("**",spanner.text ,"**"))
