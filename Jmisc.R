@@ -1390,6 +1390,7 @@ redcap_dictionary <- function(ddict){
                                   attr = colDef(html = TRUE, width = 150),
                                   choice = colDef(html = TRUE, width = 200),
                                   form_name = colDef(width = 100)),
+                height = 800,
                 groupBy = "form_name", defaultExpanded = FALSE)
   
   return(out)
