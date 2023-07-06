@@ -1397,7 +1397,7 @@ redcap_dictionary <- function(ddict){
 }
 
 
-changelog <- function(DAT){
+changelog <- function(DAT, by.vars){
   
   NEWDAT <- DAT
   timestamp <- format(Sys.time(), "%Y.%m.%d %H.%M")
@@ -1436,7 +1436,7 @@ changelog <- function(DAT){
   # return(NEWDAT)
   
   ## Check to see if data are the same between versions
-  load(Ff.new$path)
+  load(Ff.new$path) ##This loads ARCHIVE, which is the most recent saved data
   
   # return(isTRUE(all.equal(ARCHIVE, NEWDAT)))
   if(isTRUE(all.equal(ARCHIVE, NEWDAT))){
@@ -1446,7 +1446,8 @@ changelog <- function(DAT){
     
     
     load(changelog_file)
-    Ff <- bind_rows(Ffn, Ff.new) %>% mutate(n = 1:n())
+    Ff <- bind_rows(Ffn, 
+                    data.frame(file = paste0(dat_name," " ,timestamp ,".rda"))) %>% mutate(n = 1:n())
     
     i <- nrow(Ff)
     
@@ -1455,7 +1456,7 @@ changelog <- function(DAT){
     sct <- data.frame()
     vns <- data.frame()
     
-    Cc <- arsenal::comparedf(NEWDAT, ARCHIVE, by = "x")
+    Cc <- arsenal::comparedf(NEWDAT, ARCHIVE, by = by.vars)
     sCc <- summary(Cc)
     Ff$n.diffs[i] <- n.diffs(Cc)
     
@@ -1463,14 +1464,14 @@ changelog <- function(DAT){
       ## Differences by variable
       Dl <- bind_rows(Dl,
                       diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
-                        mutate(x = ac(Ff$download.time[i]),
-                               y = ac(Ff$download.time[i-1]),
+                        mutate(x = ac(Ff$file[i]),
+                               y = ac(Ff$file[i-1]),
                                comparison = paste0(i, " vs ", (i-1))))
       ## Individual differences
       Dff <- bind_rows(Dff,
                        diffs(Cc) %>%
-                         mutate(x = Ff$download.time[i],
-                                y = Ff$download.time[i-1],
+                         mutate(x = Ff$file[i],
+                                y = Ff$file[i-1],
                                 comparison = paste0(i, " vs ", (i-1))))
       ## Summaru comparison table
       sct <- bind_rows(sct,
@@ -1482,7 +1483,7 @@ changelog <- function(DAT){
                        sCc$vars.ns.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
       
-      Ff %<>% select(file, download.time, n, n.diffs)
+      Ff %<>% select(file, n, n.diffs) %>% mutate(download.time = file.mtime(paste(changelog_path, file, sep = "/")))
       # sct %<>%
       #   pivot_wider(., values_from = "value", names_from = "comparison")
       # vns %<>% group_by(comparison, version) %>% summarise(n = n(), variable = toString(variable), .groups = "drop")
