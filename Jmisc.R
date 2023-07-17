@@ -1474,7 +1474,7 @@ changelog <- function(DAT, by.vars){
                          mutate(x = Ff$file[i],
                                 y = Ff$file[i-1],
                                 comparison = paste0(i, " vs ", (i-1))))
-      ## Summaru comparison table
+      ## Summary comparison table
       sct <- bind_rows(sct,
                        sCc$comparison.summary.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
@@ -1572,4 +1572,32 @@ render_toc <- function(qmd, output){
 }
 
 
+get_toc <- function(rmd_file) {
+  ## Takes in a rmdfile name or path
+  ## Returns a data frame of the table of contents
+  
+  parsermd::parse_rmd(rmd_file) %>%as.data.frame() %>% 
+    filter(type == "rmd_heading") %>% as.data.frame() %>% select(contains("sec")) %>% mutate(n = 1:n()) %>%
+    pivot_longer(., -n, values_drop_na = TRUE) %>% mutate(h_level = readr::parse_number(name)) %>%
+    group_by(n)%>% filter(h_level == max(h_level)) %>% ungroup() %>%
+    mutate(level_1 = cumsum(h_level == 1)) %>% group_by(level_1) %>%
+    mutate(level_2 = cumsum(h_level == 2)) %>% group_by(level_1, level_2) %>%
+    mutate(level_3 = cumsum(h_level == 3)) %>% group_by(level_1, level_2, level_3) %>%
+    mutate(level_4 = cumsum(h_level == 4)) %>% group_by(level_1, level_2, level_3, level_4) %>%
+    mutate(level_5 = cumsum(h_level == 5)) %>% group_by(level_1, level_2, level_3, level_4, level_5) %>%
+    mutate(level_6 = cumsum(h_level == 6)) %>% group_by(level_1, level_2, level_3, level_4, level_5, level_6) %>%
+    mutate(level_7 = cumsum(h_level == 7)) %>% group_by(level_1, level_2, level_3, level_4, level_5, level_6, level_7) %>%
+    mutate(level_8 = cumsum(h_level == 8)) %>% ungroup() %>%
+    select(title = value, contains("level_")) %>% mutate(order = 1:n()) %>%
+    pivot_longer(., c(-title, -order)) %>%
+    arrange(order, desc(name)) %>%
+    group_by(title, order) %>% mutate(v = cumsum(value)) %>% filter(v > 0) %>%
+    arrange(order, name) %>% group_by(title, order) %>%
+    summarise(section = paste0(value, collapse = ".")) %>% arrange(order,section) %>%
+    select(order, section, title)
+}
+
+save_toc <- function(rmd_file){
+  get_toc(rmd_file) %>% write.csv(.,gsub(".Rmd", "_toc.csv",rmd_file), row.names = FALSE )
+}
 
