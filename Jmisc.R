@@ -961,9 +961,9 @@ checkbox.by <- function(dat, selection, id.vars = "study_id", by.var = "Total", 
                  values_drop_na = TRUE,
                  values_transform = list(value = as.character ))  %>% 
     group_by(!!sym(id.vars), !!sym(by.var)) %>%mutate(n = 1/n()) %>%
-    group_by(!!sym(by.var)) %>%mutate(denom = sum(n)) %>%
+    group_by(!!sym(by.var)) %>%mutate(denom = floor(sum(n)) ) %>%
     group_by(!!sym(by.var), value, denom) %>% tally() %>%
-    mutate( pct =100*n/denom) %>%
+    mutate( pct = 100*n/denom) %>%
     mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
     mutate(byv = paste0(!!sym(by.var), "\n (N = ",denom, ")")) %>% ungroup() %>%
     mutate(byv = fct_reorder(byv, n, sum))%>%
@@ -1601,3 +1601,30 @@ save_toc <- function(rmd_file){
   get_toc(rmd_file) %>% write.csv(.,gsub(".Rmd", "_toc.csv",rmd_file), row.names = FALSE )
 }
 
+session_info <- function(rmd_file){
+  ## Exports the file into temp file for session info
+  knitr::purl(rmd_file, "session_info.R", documentation = 2, quiet = TRUE)
+  
+  ## Gets parse data (duh)
+  tmp <- getParseData(parse("session_info.R", keep.source=TRUE))
+  
+  ## formats output
+  tmp %>% 
+    filter(token %in% c("SPECIAL", "SYMBOL_FUNCTION_CALL") ) %>% 
+    group_by(text) %>% 
+    tally() %>% 
+    rowwise() %>%
+    mutate(f = toString(find(text))) %>% 
+    separate_rows(.,f, sep = ",") %>% 
+    mutate(f = trimws(gsub("package:", "", f), "both")) %>% 
+    group_by(f) %>% 
+    summarise(n = n(), funs = toString(text)) %>% 
+    filter(funs != "%>%") %>% 
+    rowwise() %>%
+    mutate(version = tryCatch(as.character(packageVersion(f)), error=function(e) "NA")) %>% 
+    select(package = f, version, n, funs) %>% 
+    arrange(desc(n)) %>%
+    jgtt() %>% 
+    tab_source_note(., paste0("Current as of ", file.mtime("session_info.R")))
+  
+}
