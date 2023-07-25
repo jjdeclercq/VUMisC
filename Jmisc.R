@@ -948,7 +948,8 @@ checkbox.table3 <- function(dat, selection, id.vars = "study_id", denom = NULL, 
 
 
 
-checkbox.by <- function(dat, selection, id.vars = "study_id", by.var = "Total", col.name = "Value", denom){
+checkbox.by <- function(dat, selection, id.vars = "study_id", 
+                        by.var = "Total", col.name = "Value", denom, byvar.reorder = NULL){
   
   
   dt <- dat %>% select(id.vars, contains(selection))
@@ -966,7 +967,7 @@ checkbox.by <- function(dat, selection, id.vars = "study_id", by.var = "Total", 
     mutate( pct = 100*n/denom) %>%
     mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
     mutate(byv = paste0(!!sym(by.var), "\n (N = ",denom, ")")) %>% ungroup() %>%
-    mutate(byv = fct_reorder(byv, n, sum))%>%
+    mutate(byv = fct_reorder(byv, n, sum)) %>%
     mutate(value = fct_reorder(value, n, sum))%>%
     select(byv, col.name = value, pct) %>%
     arrange(byv) %>%
@@ -974,6 +975,10 @@ checkbox.by <- function(dat, selection, id.vars = "study_id", by.var = "Total", 
     arrange(desc(col.name))
 
   names(int)[1] <- col.name
+  
+  if(!is.null(byvar.reorder)){
+    int <- int[, byvar.reorder]
+  }
 
   jgtt(int)
 }
