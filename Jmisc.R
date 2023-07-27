@@ -1548,8 +1548,8 @@ changelog <- function(DAT, by.vars){
 publish_to_vsp <- function(qmd, output, directory){
   ## Publish report to OneDrive for VSP (copied from vpn directory)
   
-  # Pull latest data from redcap
-  notes <- update_redcap_notes()
+  # # Pull latest data from redcap
+  # notes <- update_redcap_notes()
   
   of <- paste0(Sys.Date()," ", output, ".html" )
   
@@ -1563,7 +1563,7 @@ publish_to_vsp <- function(qmd, output, directory){
 }
 
 
-
+## Depricated -- use get_toc instead!
 render_toc <- function(qmd, output){
   ## Render blank html document with Table of contents only
   ## Requires eval_code parameter sent to knitr::opts_chunk$set
