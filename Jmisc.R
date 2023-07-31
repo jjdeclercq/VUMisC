@@ -1546,6 +1546,18 @@ changelog <- function(DAT, by.vars){
   
 }
 
+changelog.summary <- function(path = "../data/archive/changelog_data/changelog_output_data.rda"){
+  
+  if(file.exists(path)){
+    load(path)
+    
+    return(changelog_output$Ffi %>%jgtt() )
+    
+  }else{
+    return("No updates to source data")
+    
+  }}
+
 publish_to_vsp <- function(qmd, output, directory){
   ## Publish report to OneDrive for VSP (copied from vpn directory)
   
