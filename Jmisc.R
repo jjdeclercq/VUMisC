@@ -1559,6 +1559,10 @@ changelog.summary <- function(path = "../data/archive/changelog_data/changelog_o
   }}
 
 publish_to_vsp <- function(qmd, output, directory){
+  ## qmd = "filename.Rmd" (was originally part of my quarto conversion)
+  ## Output is the quoted name for the output file, e.g. "Project X"
+  ## directory is the path to the VSP biostats report folder for the project
+  
   ## Publish report to OneDrive for VSP (copied from vpn directory)
   
   # # Pull latest data from redcap
