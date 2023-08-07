@@ -963,7 +963,7 @@ checkbox.by <- function(dat, selection, id.vars = "study_id",
                  values_drop_na = TRUE,
                  values_transform = list(value = as.character ))  %>% 
     group_by(!!sym(id.vars), !!sym(by.var)) %>%mutate(n = 1/n()) %>%
-    group_by(!!sym(by.var)) %>%mutate(denom = floor(sum(n)) ) %>%
+    group_by(!!sym(by.var)) %>%mutate(denom = round(sum(n), 0) ) %>%
     group_by(!!sym(by.var), value, denom) %>% tally() %>%
     mutate( pct = 100*n/denom) %>%
     mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
@@ -1306,9 +1306,9 @@ update.redcap.changelog <- function(id.vars){
     
     Cc <- arsenal::comparedf(p1, p2, by = id.vars)
     sCc <- summary(Cc)
-    Ff$n.diffs[i] <- n.diffs(Cc)
+    Ff$n.diffs[i] <- arsenal::n.diffs(Cc)
     
-    if(n.diffs(Cc) >0){
+    if(arsenal::n.diffs(Cc) >0){
       Dl <- bind_rows(Dl,
                       diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
                         mutate(x = ac(Ff$download.time[i]),
@@ -1465,9 +1465,9 @@ changelog <- function(DAT, by.vars){
     
     Cc <- arsenal::comparedf(NEWDAT, ARCHIVE, by = by.vars)
     sCc <- summary(Cc)
-    Ff$n.diffs[i] <- n.diffs(Cc)
+    Ff$n.diffs[i] <- arsenal::n.diffs(Cc)
     
-    if(n.diffs(Cc) >0){
+    if(arsenal::n.diffs(Cc) >0){
       ## Differences by variable
       Dl <- bind_rows(Dl,
                       diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
