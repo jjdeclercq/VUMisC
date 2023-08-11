@@ -594,6 +594,7 @@ jgtt <- function(dat, col.names = TRUE){
                     table.font.size = 12,
                     # table.width = px(700),
                     heading.align = "left",
+                    column_labels.font.weight = 'bold',
                     heading.title.font.size = 16,
                     table.border.top.color = "transparent",
                     table.border.top.width = px(3),
@@ -985,7 +986,14 @@ checkbox.by <- function(dat, selection, id.vars = "study_id",
 }
 
 checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", add.none = FALSE,
-                         by.var = "Total", col.name = "Value", DENOM = NULL, byvar.reorder = NULL){
+                         by.var = "Total", col.name = "Value", DENOM = NULL, byvar.reorder = NULL,
+                         add.footnote = FALSE){
+  
+  footnote <- paste("Values represent",
+                    {ifelse(count == "all", 
+                            "the total number of selections made",
+                            "whether the item was selected at least once") },
+                    "grouped according to", paste(id.vars, collapse = ",") )
   
   dat <- dat %>% rowwise() %>% 
     mutate(ID = paste(across(all_of(id.vars)), collapse = "_")) %>% 
@@ -1009,7 +1017,7 @@ checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", ad
     group_by(!!sym(by.var), value, denom) %>% tally() %>%
     mutate( pct = 100*n/denom) %>%
     mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
-    mutate(byv = paste0(!!sym(by.var), "\n (N = ",denom, ")")) %>% ungroup() %>%
+    mutate(byv = paste0("",!!sym(by.var), " (N = ",denom, ")")) %>% ungroup() %>%
     mutate(byv = fct_reorder(byv, n, sum)) %>%
     mutate(value = fct_reorder(value, n, sum))%>%
     select(byv, col.name = value, pct) %>%
@@ -1023,7 +1031,11 @@ checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", ad
     int <- int[, byvar.reorder]
   }
   
-  jgtt(int)
+  
+  jgtt(int) %>%
+    {if(isTRUE(add.footnote)) tab_footnote(., footnote) else .} %>%
+    tab_style(., style = list(cell_text(weight = "bold")), 
+              locations = cells_body(columns = col.name))
 }
 
 rms.sum.table <- function(summary, trib){
