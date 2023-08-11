@@ -984,6 +984,48 @@ checkbox.by <- function(dat, selection, id.vars = "study_id",
   jgtt(int)
 }
 
+checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", add.none = FALSE,
+                         by.var = "Total", col.name = "Value", DENOM = NULL, byvar.reorder = NULL){
+  
+  dat <- dat %>% rowwise() %>% 
+    mutate(ID = paste(across(all_of(id.vars)), collapse = "_")) %>% 
+    select(ID, everything()) %>% ungroup()
+  
+  dt <- dat %>% select(ID, contains(selection))
+  
+  dt[,by.var] <- "Total"
+  
+  int <- dt %>%
+    {if(by.var != "Total") bind_rows(., dat %>% 
+                                       select(ID,by.var, contains(selection))) else (.)} %>%
+    {if(isTRUE(add.none)) rowwise(.) %>% 
+        mutate(None = sum(!is.na(across(contains(selection)))), None = ifelse(None ==0, "None", NA)) else .} %>%
+    pivot_longer(.,c(-ID, -all_of(c(by.var))),
+                 values_drop_na = TRUE,
+                 values_transform = list(value = as.character ))  %>%
+    group_by(ID, !!sym(by.var)) %>%mutate(n = 1/n()) %>%
+    group_by(!!sym(by.var)) %>% mutate(denom = round(sum(n), 0) ) %>%
+    {if(count == "any")  group_by(., ID, !!sym(by.var), value, denom) %>% tally() else .} %>% 
+    group_by(!!sym(by.var), value, denom) %>% tally() %>%
+    mutate( pct = 100*n/denom) %>%
+    mutate( pct = paste0(n, " (", round(pct, 1), "%)", sep = "")) %>%
+    mutate(byv = paste0(!!sym(by.var), "\n (N = ",denom, ")")) %>% ungroup() %>%
+    mutate(byv = fct_reorder(byv, n, sum)) %>%
+    mutate(value = fct_reorder(value, n, sum))%>%
+    select(byv, col.name = value, pct) %>%
+    arrange(byv) %>%
+    pivot_wider(., names_from = "byv", values_from = "pct", values_fill = "0 (0%)") %>%
+    arrange(desc(col.name))
+  
+  names(int)[1] <- col.name
+  
+  if(!is.null(byvar.reorder)){
+    int <- int[, byvar.reorder]
+  }
+  
+  jgtt(int)
+}
+
 rms.sum.table <- function(summary, trib){
   
   res <- tibble::as_tibble(summary, rownames = "term")
@@ -1282,13 +1324,13 @@ j.redcap_extract <- function(rmd_file, data_path = "../data/", archive_path = ".
 }
 
 
-update.redcap.changelog <- function(id.vars){
+update.redcap.changelog <- function(id.vars, archive.location = "../data/archive/"){
   
   ## Could update function so that it only runs comparedf when new data is available
   
   require(arsenal)
   
-  Ff <- data.frame(root = "../data/archive/", file = list.files("../data/archive")) %>%
+  Ff <- data.frame(root = archive.location, file = list.files(archive.location)) %>%
     mutate(path = paste0(root, file), download.time = file.mtime(path)) %>%
     arrange(download.time) %>% mutate(n = 1:n(), n.diffs = NA)
   
