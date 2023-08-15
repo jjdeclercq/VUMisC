@@ -987,7 +987,7 @@ checkbox.by <- function(dat, selection, id.vars = "study_id",
 
 checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", add.none = FALSE,
                          by.var = "Total", col.name = "Value", DENOM = NULL, byvar.reorder = NULL,
-                         add.footnote = FALSE){
+                         add.footnote = FALSE,spanner.label = NULL){
   
   footnote <- paste("Values represent",
                     {ifelse(count == "all", 
@@ -1035,7 +1035,8 @@ checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", ad
   jgtt(int) %>%
     {if(isTRUE(add.footnote)) tab_footnote(., footnote) else .} %>%
     tab_style(., style = list(cell_text(weight = "bold")), 
-              locations = cells_body(columns = col.name))
+              locations = cells_body(columns = col.name)) %>%
+  {if(!is.null(spanner.label))  tab_spanner(., spanner.label, columns = c(contains("N ="), -contains("Total"))) else .}
 }
 
 rms.sum.table <- function(summary, trib){
