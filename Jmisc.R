@@ -554,14 +554,20 @@ gtcap <- function(dat, cap = "CAPTION"){
 #   
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
-                spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", ...){
+                spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
+                one_row_binary = FALSE, ...){
   {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
   sort <- NULL
   {if(order.cat) sort = all_categorical() ~ "frequency"}
   
   
-  TYPE <-  list( all_dichotomous() ~ "categorical")
+  
+  if(one_row_binary) {TYPE <- list( all_dichotomous() ~ "dichotomous")} 
+  else{
+    TYPE <-  list( all_dichotomous() ~ "categorical")
+  }
   if(force.continuous) {TYPE[[2]] <- where(is.numeric) ~ "continuous2"}
+  
   
  tab <- dat  %>%
     tbl_summary(type = TYPE,
