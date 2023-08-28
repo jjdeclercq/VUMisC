@@ -1013,7 +1013,7 @@ checkbox.by2 <- function(dat, selection, id.vars = "study_id", count = "all", ad
     {if(by.var != "Total") bind_rows(., dat %>% 
                                        select(ID,by.var, contains(selection))) else (.)} %>%
     {if(isTRUE(add.none)) rowwise(.) %>% 
-        mutate(None = sum(!is.na(across(contains(selection)))), None = ifelse(None ==0, "None", NA)) else .} %>%
+        mutate(None = sum(!is.na(across(contains(selection)))), None = ifelse(None ==0, "[None]", NA)) else .} %>%
     pivot_longer(.,c(-ID, -all_of(c(by.var))),
                  values_drop_na = TRUE,
                  values_transform = list(value = as.character ))  %>%
