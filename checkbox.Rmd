@@ -1,0 +1,573 @@
+---
+title: "Checkbox functions"
+author:
+- Josh DeClercq
+- Department of Biostatistics
+- Vanderbilt University Medical Center
+date: "<small>`r Sys.Date()`</small>"
+output:
+  rmdformats::robobook:
+    thumbnails: no
+    lightbox: true
+    gallery: no
+    highlight: tango
+    use_bookdown: yes
+    toc_depth: 2
+    fig_caption: yes
+    code_folding: hide
+    embed_fonts: no
+    keep_md: false
+    number_sections: true
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(reshape2)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(labelVector)
+require(DT)
+library(captioner)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(purrr)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
+source("checkbox_funs.R")
+
+select <- dplyr::select
+``` 
+
+# Generate data
+```{r}
+trib.x <- tibble::tribble(
+   ~nv,     ~check,
+   "1",    "Mouse",
+   "2",      "Rat",
+   "3",      "Cat",
+   "4",      "Dog",
+   "5",   "Donkey",
+   "6",   "Monkey",
+   "7",   "Turtle",
+   "8", "Hedgehog",
+   "9", "Blue jay",
+  "10",    "Rhino",
+  "11",    "Other",
+  "12",     "None")
+
+
+# check_data(10) %>% jgtt()
+# 
+# check_data_repeat(10, 5)
+
+X <- data.frame(id = 1:100, rep = sample(1:6, 100, replace = TRUE))
+
+c1 <- map(X$id, .f = check_data) %>% bind_rows()%>%
+  left_join(., trib.x, by = "nv") %>%
+  mutate(checkbox = paste(checkbox, nv, sep = "_"), check = ifelse(x==1, check, NA)) %>%
+  select(-x, -nv) %>%
+  pivot_wider(., names_from = "checkbox", values_from = "check", values_fill = NA) 
+
+
+cb <- map2(.x = X$id, .y = X$rep, .f = check_data_repeat) %>% bind_rows()%>%
+  left_join(., trib.x, by = "nv") %>%
+  mutate(checkbox = paste(checkbox, nv, sep = "_"), check = ifelse(x==1, check, NA)) %>%
+  select(-x, -nv) %>%
+  pivot_wider(., names_from = "checkbox", values_from = "check", values_fill = NA) 
+
+
+# j.label4(cb, collect.labels(df))
+cb <- set_label( cb ,
+ id = 'ID',
+ rri = 'Repeat instance',
+ site = 'Site',
+ checkbox_1 = 'Mouse',
+ checkbox_2 = 'Rat',
+ checkbox_3 = 'Cat',
+ checkbox_4 = 'Dog',
+ checkbox_5 = 'Donkey',
+ checkbox_6 = 'Monkey',
+ checkbox_7 = 'Turtle',
+ checkbox_8 = 'Hedgehog',
+ checkbox_9 = 'Blue jay',
+ checkbox_10 = 'Rhino',
+ checkbox_11 = 'Other',
+ checkbox_12 = 'None')
+
+cb %<>% clear.label.class()
+
+c1 <- set_label( c1 ,
+ id = 'ID',
+ site = 'Site',
+ checkbox_1 =  'What animals did you see? (choice=Mouse)',
+ checkbox_2 =  'What animals did you see? (choice=Rat)',
+ checkbox_3 =  'What animals did you see? (choice=Cat)',
+ checkbox_4 =  'What animals did you see? (choice=Dog)',
+ checkbox_5 =  'What animals did you see? (choice=Donkey)',
+ checkbox_6 =  'What animals did you see? (choice=Monkey)',
+ checkbox_7 =  'What animals did you see? (choice=Turtle)',
+ checkbox_8 =  'What animals did you see? (choice=Hedgehog)',
+ checkbox_9 =  'What animals did you see? (choice=Blue jay)',
+ checkbox_10 = 'What animals did you see? (choice=Rhino)',
+ checkbox_11 = 'What animals did you see? (choice=Other)',
+ checkbox_12 = 'What animals did you see? (choice=None)')
+
+c1 %<>% clear.label.class()
+```
+# checkbox_gather
+
+## Raw data
+```{r}
+c1 %>% head(10) %>% jgtt(., col.names = FALSE)
+
+
+```
+
+
+## Data frame output
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id")) %>% head()%>% jgtt()
+```
+
+## Change data type
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), count = "total") %>% jgtt()
+```
+
+## Summary output
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary")
+```
+
+## Account for no selections made
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE)
+```
+
+## Add variable labels
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE)
+```
+
+## Remove trailing description
+
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE)
+```
+
+## Clean up labels
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE,
+                tidy.labels = TRUE)
+
+```
+
+## Report checkbox stats
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  
+                stats = "only", toggle.names = TRUE, output = "summary")
+```
+
+## Add in stratafication variable
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  by.var = "site",
+                stats = "only", toggle.names = TRUE, output = "summary")
+```
+
+## Repeating data - record level
+
+
+```{r}
+cb %>% head(10) %>% jgtt(., col.names = FALSE)
+
+cb %>% head(10) %>% gt()
+
+```
+### Stats 
+```{r}
+checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+                by.var = "site", 
+                 stats = "only", toggle.names = TRUE, output = "summary")
+```
+
+### Count any
+```{r}
+checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,
+                count = "any", stats = "none", toggle.names = TRUE, add.zero = TRUE, output = "summary") 
+```
+
+### Count total
+```{r}
+checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,
+                count = "total", stats = "none", toggle.names = TRUE, add.zero = TRUE, output = "summary") 
+```
+
+### Count both
+```{r}
+checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,
+                count = "both", stats = "none", toggle.names = TRUE,  output = "summary") 
+```
+
+### Add spanner
+```{r}
+checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,
+                count = "both", stats = "none", toggle.names = TRUE,  output = "summary",
+                spanner.size = 2, spanner.text = "Site") 
+```
+
+### Rowwise percentages
+```{r}
+checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,
+                count = "both", stats = "none", toggle.names = TRUE,  output = "summary",
+                spanner.size = 2, spanner.text = "Site", percent = "row") 
+```
+
+## Repeating data - observation level
+### Stats 
+```{r}
+checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+                by.var = "site", repeat.var = "rri",
+                 stats = "only", toggle.names = TRUE, output = "summary")
+```
+
+### Count both
+```{r}
+checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
+                by.var = "site", simple.names = FALSE,repeat.var = "rri",
+                count = "both", stats = "none", toggle.names = TRUE,  output = "summary") 
+```
+
+# checkbox_tally
+
+## non-repeating data
+```{r}
+checkbox_tally(c1, "checkbox", id.var = "id", by.var = "site", add.zero = TRUE, 
+               col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
+```
+
+## repeating data - by site
+```{r}
+checkbox_tally(cb, "checkbox", id.var = "id", by.var = "site", add.zero = TRUE, 
+               col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
+```
+
+## repeating data - by repeat variable
+```{r}
+checkbox_tally(cb, "checkbox", id.var = "id", by.var = "rri", add.zero = TRUE, 
+               col.name = "Animal", spanner.size = 6, spanner.text = "Observation" )
+```
+
+
+# checkbox_intersect
+## Simple data
+```{r}
+checkbox_intersect(c1 %>% select(1:6), "checkbox", id.var = "id", add.zero = TRUE)
+```
+
+## Repeating data - observation level
+```{r}
+checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE, repeat.var = "rri")
+```
+
+## Repeating data - record level
+```{r}
+checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE)
+```
+
+
+```{r eval = FALSE}
+
+checkbox.by2(cb, "checkbox", id.vars = c("id"), by.var = "site", count = "all", byvar.reorder = c(1,3,2,4), add.zero = FALSE)
+
+lookup_names(cb, selection = "checkbox")
+
+# 
+# stats: only all none
+
+cb %>% select(1, NULL) %>% left_join(., lp, by = c("id", "rri"))
+
+cb %>% select(1, site, contains("checkbox")) %>%
+  pivot_longer(., c(-id, -site), values_drop_na = TRUE) %>% 
+  select(value, site) %>% jgt(., order.cat = TRUE, by = "site", overall = TRUE)
+
+
+
+checkbox_tally(cb, "checkbox", id.var = "id", by.var = "site", add.zero = TRUE, 
+               col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
+
+checkbox.upset2(cb, "checkbox", id.vars = c("id"))
+
+
+
+
+
+
+
+checkbox_intersect(c1, "checkbox", id.var = "id", add.zero = TRUE)
+checkbox_intersect(cb, "checkbox", id.var = "id", add.zero = TRUE, repeat.var = "rri")
+
+tidy_labels(hd.cv, "tx_2")
+
+lookup_names(hd.cv, "tx_2")
+
+
+lookup_names(hd.cv, "tx_2", tidy.labels = TRUE)
+
+data.frame(var = names(),
+           input = formals(checkbox_gather) %>% paste()) %>%
+  mutate(o = paste0(var, " = ", input, ", ")) %$% o
+
+# ffun <- function(fun){
+#   A <- deparse(substitute(fun))
+#   b <- formals(fun)
+#   C <- data.frame(var = names(b),
+#            input = b %>% paste()) %>%
+#   mutate(o = paste0(var, " = ", input, ", ")) %$% o
+#   
+#   cat(A, "(",C, ")")
+# }
+# 
+# ffun(checkbox_gather)
+# 
+# checkbox_gather( dat = ,  selection = ,  id.var = NULL,  by.var = NULL,  count = any,  tidy.labels = FALSE,  repeat.var = NULL,  stats = n,  toggle.names = TRUE,  simple.names = FALSE,  add.zero = FALSE,  output = df,  ... = ,  )
+
+fun.fun <- function(fun){
+a <- gsub("function ", deparse(substitute(fun)), paste(head(capture.output(args(fun)), -1), collapse = "\n" ))
+cat(a)
+}
+
+fun.fun(jgt)
+args(jgt)
+
+jgt(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, 
+    Digits = 1, force.continuous = FALSE, missing = "ifany", 
+    missing_text = "Missing", spanner.size = NULL, spanner.text = NULL, 
+    add.n = TRUE, percent = "column", one_row_binary = FALSE, 
+    ...) 
+```
+
+
+
+
+```{r}
+# cb_labels <- collect.labels(cb) %>% filter(grepl("checkbox", variable)) %>%
+#   mutate(any = paste(label, "(any)"),
+#          total = paste(label, "(total)"),
+#          any_var = paste0("any_", variable),
+#          total_var = paste0("total_", variable))
+# 
+# lookup.any <- cb_labels$any_var 
+# names(lookup.any) <- cb_labels$any
+# lookup.total <-   cb_labels$total_var 
+# names(lookup.total) <- cb_labels$total
+
+
+
+# cb %>% group_by(id, site) %>% 
+#   summarise(across(contains("checkbox"), ~sum(!is.na(.x)), .names = "total_{.col}"), 
+#                                         n.obs =n()) %>% 
+#   rowwise() %>% mutate(across(contains("checkbox"), ~yesno(.x>0), .names = 'any{stringr::str_remove(.col, "total")}'),
+#     n.selected = sum(across(contains("total"))),
+#                        n.unique = sum(across(contains("total"))>0)) %>% ungroup() %>%
+#   rename(any_of(c(lookup.any, lookup.total))) %>%
+#   select(contains("total"), -id, site) %>%
+#   jgt(., by = "site", overall = TRUE, one_row_binary = TRUE)
+```
+
+
+```{r}
+A <- matrix(data = c(a = c(0, 1,1,1), 
+                b = c(-1,0,1,1),
+                c = c(-1, -1, 0,1),
+                d = c(-1, -1, -1, 0)), 
+       nrow = 4, byrow = TRUE) 
+
+A <- matrix(data = c(a = c(0, 1,1,1), 
+                b = c(0,0,1,1),
+                c = c(0, 0, 0,1),
+                d = c(0, 0, 0, 0)), 
+       nrow = 4, byrow = TRUE) 
+
+B <- matrix(data = c(a = c(0, 1,-1,1), 
+                b = c(-1,0,1,1),
+                c = c(1, -1, 0,1),
+                d = c(-1, -1, -1, 0)), 
+       nrow = 4, byrow = TRUE) 
+
+B <- matrix(data = c(a = c(0, 1,1,1), 
+                b = c(0,0,1,1),
+                c = c(0, 0, 0,1),
+                d = c(0, 0, 0, 0)), 
+       nrow = 4, byrow = TRUE) 
+
+rownames(A) <- colnames(A) <- c("a", "b", "c", "d")
+# rownames(B) <- colnames(B) <- c("a", "b", "c", "d")
+
+rownames(B) <-colnames(B) <- c("b", "e", "d", "f")
+
+
+Vx <- expand.grid(unique(c(colnames(A), colnames(B))), unique(c(colnames(A), colnames(B)) ), stringsAsFactors = FALSE) %>%
+  rename(item = Var1, name = Var2)
+
+
+as.data.frame(A) %>% rownames_to_column() %>% pivot_longer(-1) %>%
+  group_by(rowname) %>% summarise(v = sum(value))
+
+
+comp1 <- left_join(Vx, 
+          bind_rows(as.data.frame(A) %>% rownames_to_column("item") %>% pivot_longer(-1),
+          as.data.frame(B) %>% rownames_to_column("item") %>% pivot_longer(-1)),
+          by = c("item", "name")) %>% distinct() 
+
+comp2 <- comp1 %>% 
+  arrange(item) %>% filter(value ==1) %>% select(name = item, comp = name)
+
+comp3 <- full_join(comp1, comp2, by = "name") %>% distinct() %>% arrange(item)%>% filter(value == 1, !is.na(comp)) %>%
+  select(item, name = comp, value)
+
+bind_rows(comp1, comp3) %>%distinct() %>% arrange(item) %>%
+  group_by(item, name) %>% summarise(value = sum(value, na.rm = TRUE)) %>% 
+  pivot_wider(., names_from = "name", values_from = "value", values_fill = NA)
+```
+
+
+```{r eval = FALSE}
+A %*% t(A) %*% matrix(data = c(1, 1,1,1),nrow = 4, byrow = TRUE)
+
+B <- matrix(data = c(a = c(0, 1,1,1, 0, 0), 
+                b = c(0,0,1,1, 1, 1),
+                c = c(0, 0, 0,1, 0, 0),
+                d = c(0, 0, 0, 0, 0, 1),
+                e = c(0, 0, 0, 1, 0, 1),
+                f = c(0, 0, 0, 0, 0, 0)), 
+       nrow = 6, byrow = TRUE) 
+
+C <- matrix(data = c(a = c(1, 1,1,1, 0, 0), 
+                b = c(1,1,1,1, 1, 1),
+                c = c(1, 1, 1,1, 0, 0),
+                d = c(1,1,1,1, 1, 1),
+                e = c(0, 1, 0, 1, 1, 1),
+                f = c(0, 1, 0, 1, 1, 1)), 
+       nrow = 6, byrow = TRUE) 
+
+colnames(B) <- c("a", "b", "c", "d", "e", "f")
+rownames(B) <- c("a", "b", "c", "d", "e", "f")
+
+B %*% t(B) %*% matrix(data = c(1, 1,1,1, 1, 1),ncol = 1, byrow = TRUE)
+B %*% t(B) %*% matrix(data = c(1, .5,1,.5, 1, 1),ncol = 1, byrow = TRUE)
+
+B %*% t(B) %*%(diag(c(4,1,4, 1, 4,4), 6 )*0.5) %*% matrix(data = c(1, 1,1,1, 1, 1),ncol = 1, byrow = TRUE)
+```
+
+
+```{r eval = FALSE}
+`%>>%` <- function(a, b){
+  if(!is.data.frame(a)){
+  RE <- data.frame(item = a, item2 = b)
+  }else{ 
+   nr <- nrow(a) + 1
+    RE <- bind_rows(a, data.frame(item = c(a$item, a$item2[nrow(a)]), item2 = rep(b, nr))) %>% distinct()
+  }
+  
+  return(RE)
+} 
+"A" %>>% "B" %>>% "C"
+g <- "A" %>>% "B" %>>% "I" %>>% "E"
+h <- "B" %>>% "C" 
+hh <- "C" %>>% "D"
+h2 <- "D" %>>% "E"
+h3 <- "E" %>>% "F"
+h4 <- "F" %>>% "G"
+h5 <- "G" %>>% "H"
+H <- bind_rows(g, h, hh, h2, h3, h4, h5)
+
+k <- bind_rows(H %>% mutate(value =1),
+data.frame(item = H$item2, item2 = H$item) %>% mutate(value = -1)) %>% 
+  distinct() 
+
+left_join(k, k %>% rename(item2 = item, comp = item2), by = c("item2", "value") ) %>% distinct() %>% 
+  filter(item != comp|is.na(comp)) %>%
+  pivot_longer(., -c("item", "value"), names_to = "x", values_to = "item2", values_drop_na = TRUE) %>%
+  select(-x)%>% distinct() %>%
+  mutate(item = fct_reorder(item, value, sum)) %>%
+  mutate(item2 = factor(item2, levels = levels(item))) %>%
+  arrange(desc(item), desc(item2) ) %>%
+  pivot_wider(., names_from = "item2", values_from = "value") %>% 
+  select(item, all_of(rev(levels(.$item))))
+```
+
+```{r eval = FALSE}
+k <- bind_rows(H %>% mutate(value =1),
+data.frame(item = H$item2, item2 = H$item) %>% mutate(value = -1)) %>% 
+  distinct() %>% mutate(n =1)
+
+i <- 0 
+j<- 100
+round <- 0
+while(i < j){
+  i <- nrow(k)
+    round <- round+1
+  
+  k2 <- left_join(k %>% select(-n), 
+                  k %>% select(-n) %>% rename(item2 = item, comp = item2), 
+                  by = c("item2", "value") ) %>% 
+    distinct() %>% 
+  filter(item != comp|is.na(comp)) %>%
+  pivot_longer(., -c("item", "value"), names_to = "x", values_to = "item2", values_drop_na = TRUE) %>%
+  select(-x)%>% distinct() 
+  
+  k <- full_join(k, k2, c("item", "item2", "value")) %>% mutate(n = replace_na(n, round))
+  
+  j <- nrow(k)
+
+}
+  
+k %>% select(-n) %>% 
+  mutate(item = fct_reorder(item, value, sum)) %>%
+  mutate(item2 = factor(item2, levels = levels(item))) %>%
+  arrange(desc(item), desc(item2) ) %>%
+  pivot_wider(., names_from = "item2", values_from = "value") %>% 
+  select(item, all_of(rev(levels(.$item))))
+```
+
+
+```{r eval = FALSE}
+k <- bind_rows(j %>% mutate(value =1),
+data.frame(item = j$name, name = j$item) %>% mutate(value = -1)) %>% 
+  group_by(item, name) %>% summarise(value = sum(value)) 
+
+left_join(k, k %>% rename(name = item, comp = name), by = c("name", "value") ) %>% distinct() %>% 
+  filter(item != comp|is.na(comp)) %>%
+  pivot_longer(., -c("item", "value"), names_to = "x", values_to = "item2", values_drop_na = TRUE) %>%
+  select(-x)%>% 
+  group_by(item, item2) %>% summarise(value = sum(value)) %>%
+  mutate(item = fct_reorder(item, value, sum)) %>%
+  mutate(item2 = factor(item2, levels = levels(item))) %>%
+  arrange((item), desc(item2) ) %>%
+  pivot_wider(., names_from = "item2", values_from = "value") %>% 
+  select(item, all_of(levels(.$item)))
+```
+

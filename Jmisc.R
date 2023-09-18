@@ -591,7 +591,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
 jgtt <- function(dat, col.names = TRUE){
   
   dat %>% 
-    {if(col.names) sjlabelled::label_to_colnames(.)else .}  %>% 
+    {if(isTRUE(col.names)) sjlabelled::label_to_colnames(.)else .}  %>% 
     gt() %>%
     opt_row_striping() %>%
     gt::tab_options(table_body.hlines.color = "white",
