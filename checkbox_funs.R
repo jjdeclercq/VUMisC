@@ -92,10 +92,11 @@ checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count 
               n.all.none = all(!is.na(zero))) %>% 
     rowwise() %>%
     mutate(across(contains(selection), ~yesno(.x>0), .names = 'any{stringr::str_remove(.col, "total")}'),
-           n.selected = sum(across(c(contains("total"), -any_of(paste0("total_", selection, "_none"))))),
-           n.unique = sum(across(c(contains("total"), -any_of(paste0("total_", selection, "_none"))))>0)) %>% ungroup() %>%
+           n.selected = sum(across(c(contains("total"), -any_of(paste0("total_", selection, "_zero"))))),
+           n.unique = sum(across(c(contains("total"), -any_of(paste0("total_", selection, "_zero"))))>0)) %>% ungroup() %>%
     {if(count %in% c( "any")) select(., -contains("total")) else .} %>%
     {if(count %in% c("total")) select(., -contains("any")) else .} %>%
+    {if(nrow(.) == nrow(dat)) select(., -n.unique, -n.obs) else .} %>%
     {if(stats %in% c("none")) select(., -starts_with("n.")) else .} %>%
     {if(stats %in% c("only")) select(., ID, starts_with("n.")) else .} %>%
     {if(isTRUE(toggle.names)) rename(., any_of(c(lookup, stat_names))) else .} %>%
@@ -129,7 +130,7 @@ checkbox_tally <- function(dat, selection, id.var = NULL, by.var = NULL, col.nam
       {if(is.null(by.var)) . else mutate(., byv = paste0("",!!sym(by.var)))} %>%
       select(any_of(c(id.var, by.var)), contains(selection)) %>%
       {if(isTRUE(add.zero)) rowwise(.) %>% 
-          mutate(None = sum(!is.na(across(contains(selection)))), None = ifelse(None ==0, "[None]", NA)) else .} %>%
+          mutate(zero = sum(!is.na(across(contains(selection)))), zero = ifelse(zero ==0, "[Zero selected]", NA)) else .} %>%
       pivot_longer(., -any_of(c(id.var, by.var)), values_drop_na = TRUE) %>% 
       select(value, by.var)
     
@@ -140,11 +141,11 @@ checkbox_tally <- function(dat, selection, id.var = NULL, by.var = NULL, col.nam
 }
 
 
-checkbox_intersect <- function(dat, selection, id.var, repeat.var = NULL, toggle.names = TRUE, add.zero = FALSE){
+checkbox_intersect <- function(dat, selection, id.var, repeat.var = NULL, toggle.names = TRUE, add.zero = FALSE, ...){
   
   checkbox_gather(dat = dat, selection = selection, id.var = id.var, repeat.var = repeat.var,
                   count = "any", stats = "none", simple.names = TRUE,
-                  toggle.names = toggle.names, add.zero = add.zero, output = "df") %>%
+                  toggle.names = toggle.names, add.zero = add.zero, output = "df", ...) %>%
     select(-any_of(c(id.var, repeat.var)))%>%
     mutate(across(everything(), ~ifelse(.x == "Yes", 1, 0))) %>%
     as.data.frame() %>% UpSetR::upset(., nsets = 20, nintersects = 30)

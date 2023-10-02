@@ -54,6 +54,7 @@ select <- dplyr::select
 
 # Generate data
 ```{r}
+set.seed(100)
 trib.x <- tibble::tribble(
    ~nv,     ~check,
    "1",    "Mouse",
@@ -128,51 +129,82 @@ c1 <- set_label( c1 ,
 
 c1 %<>% clear.label.class()
 ```
-# checkbox_gather
 
-## Raw data
+## simple checkbox data
 ```{r}
-c1 %>% head(10) %>% jgtt(., col.names = FALSE)
+c1 %>% clear.labels() %>% head(10) %>% jgtt(., col.names = FALSE)
+```
 
-
+## repeating checkbox
+```{r}
+cb %>% clear.labels() %>% head(10) %>% jgtt(., col.names = FALSE)
 ```
 
 
-## Data frame output
+
+# checkbox_gather
+
+## Simple checkbox data
+
+### Data frame output
+
+Returns data frame that can be joined to original data. Columns may be more suited to other summary tables or modeling.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id")) %>% head()%>% jgtt()
 ```
 
-## Change data type
+### Change data type
+
+With non-repeating data, 'any' and 'total' are equivalent. However, setting `count = "total"` returns numeric columns. 
+
 ```{r}
-checkbox_gather(c1, selection = "checkbox", id.var = c("id"), count = "total") %>% jgtt()
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), count = "total")%>%head() %>% jgtt()
 ```
 
-## Summary output
+### Summary output
+
+Checkboxes are non-mutually exclusive, so percentages will not sum to 100%.
+
+**Interpretation:** 20 people included checkbox_1 among their selections.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary")
 ```
 
-## Account for no selections made
+### Account for no selections made
+
+Even if there is a checkbox specifically for "none" or "none of the above", there is still room for data entry errors. Setting `add.zero = TRUE` will append a new row to the data, and anyone with no other selections will be counted here.
+
+**Interpretation:** 4 people had zero boxes selected.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
                 add.zero = TRUE)
 ```
 
-## Add variable labels
+### Add variable labels
+
+Setting `toggle.names = TRUE` will use the variable labels rather than the variable names.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
                 add.zero = TRUE, toggle.names = TRUE)
 ```
 
-## Remove trailing description
+### Remove trailing description
+
+Changing `simple.names = TRUE` will clean up the trailing descriptor. Note, this feature does not work if `count = "both"`.
 
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
                 add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE)
 ```
 
-## Clean up labels
+### Clean up labels
+
+Often redcap variable labels for checkboxes contain a lot of extraneous information. Adjusting `tidy.labels = TRUE` should fix this assuming the pattern is of "Long description (choice=**DATA ITEM**)"
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
                 add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE,
@@ -180,13 +212,23 @@ checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary"
 
 ```
 
-## Report checkbox stats
+### Report checkbox stats
+
+An alternative to individual checkbox summaries is aggregated summaries. For non-repeating data, setting `stats` to `only` will present the number of zero selections as well as the total number of selections each participant made.
+
+**Interpretation:** 11 participants made 4 selections, while 22 participants only reported one each.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  
                 stats = "only", toggle.names = TRUE, output = "summary")
 ```
 
-## Add in stratafication variable
+### Add in stratafication variable
+
+Summaries can be stratified by putting the desired variable at `by.var = "site"`.
+
+**Interpretation:** 7 people at site A and 4 people at site B reported seeing 4 animals.
+
 ```{r}
 checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  by.var = "site",
                 stats = "only", toggle.names = TRUE, output = "summary")
@@ -194,21 +236,12 @@ checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  by.var = "site",
 
 ## Repeating data - record level
 
-
-```{r}
-cb %>% head(10) %>% jgtt(., col.names = FALSE)
-
-cb %>% head(10) %>% gt()
-
-```
-### Stats 
-```{r}
-checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
-                by.var = "site", 
-                 stats = "only", toggle.names = TRUE, output = "summary")
-```
+To produce summaries on the record (ID) level using repeating data, simply leave `repeat.var = NULL`
 
 ### Count any
+
+**Interpretation:** 33 people reported seeing a mouse at least once at site A.
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,
@@ -216,6 +249,9 @@ checkbox_gather(cb, selection = "checkbox", id.var = c("id"),
 ```
 
 ### Count total
+
+**Interpretation:** At site A, 17 people reported seeing 1 mouse, 14 saw 2 mice and 2 people saw 3 mice. (17 + 14 + 2 = 33, which matches the `count = "any"` output above.)
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,
@@ -223,13 +259,33 @@ checkbox_gather(cb, selection = "checkbox", id.var = c("id"),
 ```
 
 ### Count both
+
+With repeating measurements reported on the record level, the "any" and "total" counts give different results. Note: Here `simple.names = TRUE` will not change the output of the variable labels, as the additional information is crucial to differentiating the two summaries.
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,
                 count = "both", stats = "none", toggle.names = TRUE,  output = "summary") 
 ```
 
+### Stats 
+
+Reporting on this level also yields a few additional aggregate summaries: the number of unique selections made and the number of times the form was repeated within each record.
+
+**Interpretation:** 5 people filled out information for 2 repeating forms. The median (IQR) number of animals reported was 8 (4 - 13) at site A, while the median number of unique animals seen was 7 (4 - 9). The difference here is if someone reporting seeing a monkey on each of 5 different excursions, but no other animals, their number of selections made would be 5, but their number of unique selections would be 1.
+
+
+
+```{r}
+checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+                by.var = "site", 
+                 stats = "only", toggle.names = TRUE, output = "summary")
+```
+
 ### Add spanner
+
+Adding `spanner.size = 2, spanner.text = "Site"` adds information about the stratification variable. `spanner.size` must match the number of levels in `by.var`. (Note: these two arguments are passed to `jgt` which itself is a generalization of `tbl_summary`.)
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,
@@ -238,6 +294,11 @@ checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"),
 ```
 
 ### Rowwise percentages
+
+Adding `percent = "row"` will make report percentages calculated across each row rather than column-wise.
+
+**Interpretation:** Of the 52 people who reported seeing a Rat, 44% of them were from Site B.
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,
@@ -247,6 +308,11 @@ checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"),
 
 ## Repeating data - observation level
 ### Stats 
+
+Here we see that the repeating data has 361 observations.
+
+**Interpretation:** 10 observation-level records had zero selections made. This does not necessarily mean that 10 people did not fill out a form one time. It could be possible that one person had 10 observations in the data, and did not make a selection in any of them. 
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
                 by.var = "site", repeat.var = "rri",
@@ -254,6 +320,9 @@ checkbox_gather(cb, selection = "checkbox", id.var = c("id"),
 ```
 
 ### Count both
+
+In the observation level summaries, the results for "total" and "any" are the same.
+
 ```{r}
 checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"), 
                 by.var = "site", simple.names = FALSE,repeat.var = "rri",
@@ -262,37 +331,76 @@ checkbox_gather(cb, selection = "checkbox_2", id.var = c("id"),
 
 # checkbox_tally
 
+Rather than the participant or the observation being the unit of study, this function aggregates the checkbox data and uses that as the identifier of interest. 
+
+Many of the same arguments are used in `checkbox_tally`.
+
 ## non-repeating data
+
+Data are transformed so that there are as many observations as there were boxes selected. The argument `col.name` controls what the aggregated variable is named in the summary table.
+
+**Interpretation:** A rhino was observed 24 times across both sites, accounting for 9.7% of all boxes selected. However, the `none` and `zero` counts are included in the denominator, which may not produce the desired outcome. See the subsequent table for the alternative calculation.
+
 ```{r}
 checkbox_tally(c1, "checkbox", id.var = "id", by.var = "site", add.zero = TRUE, 
                col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
 ```
 
-## repeating data - by site
+## removing levels
+
+In this case, both the none and other levels were removed by removing from them from data prior to piping into the function (`c1 %>% select(-checkbox_11, -checkbox_12) `)
+
+**Interpretation:** Of the 218 animals of interest, 10.1% of observations made were a dog.
+
 ```{r}
-checkbox_tally(cb, "checkbox", id.var = "id", by.var = "site", add.zero = TRUE, 
+c1 %>% select(-checkbox_11, -checkbox_12) %>% 
+checkbox_tally(., "checkbox", id.var = "id", by.var = "site", add.zero = FALSE, 
+               col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
+```
+
+## repeating data - by site
+
+Repeating data is handled similarly to the simple case, because the unit of study here are the checkbox values, not the observation or record. 
+
+```{r}
+checkbox_tally(cb, "checkbox", id.var = "id", by.var = "site", add.zero = FALSE, 
                col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
 ```
 
 ## repeating data - by repeat variable
+
+Change the `by.var` to the repeating variable, to get a summary of the distribution of animals observed at each time point.
+
 ```{r}
-checkbox_tally(cb, "checkbox", id.var = "id", by.var = "rri", add.zero = TRUE, 
+checkbox_tally(cb, "checkbox", id.var = "id", by.var = "rri", add.zero = FALSE, 
                col.name = "Animal", spanner.size = 6, spanner.text = "Observation" )
 ```
 
 
 # checkbox_intersect
+
+Constructs an UpSet plot to visualize which selections were most commonly made together. Inputs are similar to `checkbox_gather`.
+
 ## Simple data
+
+Note: the number of columns was reduced to lessen the number of intersections for the sake of interpretation.
+
+**Interpretation:** 14 people only saw a cat. 4 people reported seeing both a Mouse and a Rat. While 1 person saw a Mouse, a Rat and a Cat.
+
+
 ```{r}
-checkbox_intersect(c1 %>% select(1:6), "checkbox", id.var = "id", add.zero = TRUE)
+checkbox_intersect(c1 %>% select(1:6), "checkbox", id.var = "id", add.zero = TRUE, tidy.labels = TRUE)
 ```
 
 ## Repeating data - observation level
 ```{r}
-checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE, repeat.var = "rri")
+checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = FALSE, repeat.var = "rri")
 ```
 
 ## Repeating data - record level
+
+Excluding `repeat.var` with repeating data will greatly increase the number of intersections.
+
 ```{r}
 checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE)
 ```
@@ -361,12 +469,14 @@ cat(a)
 
 fun.fun(jgt)
 args(jgt)
-
-jgt(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, 
-    Digits = 1, force.continuous = FALSE, missing = "ifany", 
-    missing_text = "Missing", spanner.size = NULL, spanner.text = NULL, 
-    add.n = TRUE, percent = "column", one_row_binary = FALSE, 
-    ...) 
+# checkbox_gather(c1, selection = "checkbox", id.var = c("id"),  
+#                 stats = "only", toggle.names = FALSE, output = "summary")
+# checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+#                 by.var = "site", 
+#                  stats = "only", toggle.names = TRUE, output = "summary")
+# checkbox_gather(cb, selection = "checkbox", id.var = c("id"), 
+#                 by.var = "site", repeat.var = "rri",
+#                  stats = "only", toggle.names = TRUE, output = "summary")
 ```
 
 
@@ -398,7 +508,7 @@ jgt(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE,
 ```
 
 
-```{r}
+```{r eval = FALSE}
 A <- matrix(data = c(a = c(0, 1,1,1), 
                 b = c(-1,0,1,1),
                 c = c(-1, -1, 0,1),
