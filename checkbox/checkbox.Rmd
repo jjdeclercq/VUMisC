@@ -47,7 +47,7 @@ require(purrr)
 
 
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
-source("checkbox_funs.R")
+source("R/checkbox_funs.R")
 
 select <- dplyr::select
 ``` 
@@ -71,7 +71,7 @@ trib.x <- tibble::tribble(
   "12",     "None")
 
 
-# check_data(10) %>% jgtt()
+# check_data("10") %>% jgtt()
 # 
 # check_data_repeat(10, 5)
 
@@ -128,6 +128,24 @@ c1 <- set_label( c1 ,
  checkbox_12 = 'What animals did you see? (choice=None)')
 
 c1 %<>% clear.label.class()
+
+c2 <- set_label( c1 ,
+ id = 'ID',
+ site = 'Site',
+ checkbox_1 =  'Some string that does not fit the pattern: Mouse',
+ checkbox_2 =  'Some string that does not fit the pattern: Rat',
+ checkbox_3 =  'Some string that does not fit the pattern: Cat',
+ checkbox_4 =  'Some string that does not fit the pattern: Dog',
+ checkbox_5 =  'Some string that does not fit the pattern: Donkey',
+ checkbox_6 =  'Some string that does not fit the pattern: Monkey',
+ checkbox_7 =  'Some string that does not fit the pattern: Turtle',
+ checkbox_8 =  'Some string that does not fit the pattern: Hedgehog',
+ checkbox_9 =  'Some string that does not fit the pattern: Blue jay',
+ checkbox_10 = 'Some string that does not fit the pattern: Rhino',
+ checkbox_11 = 'Some string that does not fit the pattern: Other',
+ checkbox_12 = 'Some string that does not fit the pattern: None')
+
+c2 %<>% clear.label.class()
 ```
 
 ## simple checkbox data
@@ -211,6 +229,36 @@ checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary"
                 tidy.labels = TRUE)
 
 ```
+
+#### Labels that don't fit pattern
+
+If the label pattern is not consistent with the above, setting `tidy.labels = TRUE` will yield the following:
+
+```{r}
+checkbox_gather(c2, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE,
+                tidy.labels = TRUE)
+```
+
+Utilize the `str.rm` argument by passing the exact string you want removed. This utilizes regular expressions via `gsub`.
+
+```{r}
+checkbox_gather(c2, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE,
+                str.rm = "Some string that does not fit the pattern: ",
+                tidy.labels = TRUE)
+```
+
+### Order fields by frequency
+
+```{r}
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "summary", 
+                add.zero = TRUE, toggle.names = TRUE, simple.names = TRUE,
+                reorder.cols = TRUE,
+                tidy.labels = TRUE)
+
+```
+
 
 ### Report checkbox stats
 
@@ -403,6 +451,25 @@ Excluding `repeat.var` with repeating data will greatly increase the number of i
 
 ```{r}
 checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE)
+```
+
+
+# Next steps
+
+The above suite of functions could be the start of a new R package, but I've never made an R package. Here are my tentative next steps:
+
+  - Using ChatGPT to add error checking to functions
+  - ChatGPT can also take a decent stab at getting roxygen comments started
+  - `devtools::create("checkbox")` creates the requisite folders and files
+  - Need to reoranize .R file and then run `roxygen2::roxygenise()`
+  - Help files are created for each function
+
+
+```{r}
+# devtools::create("checkbox")
+# roxygen2::roxygenise()
+
+?lookup_names
 ```
 
 
