@@ -47,6 +47,7 @@ require(purrr)
 
 
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
+# devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/checkbox/R/checkbox_funs.R")
 source("R/checkbox_funs.R")
 
 select <- dplyr::select
@@ -470,6 +471,11 @@ The above suite of functions could be the start of a new R package, but I've nev
 # roxygen2::roxygenise()
 
 ?lookup_names
+
+
+## Examples don't always do what they're supposed to
+dx <- data.frame(a = 1:5, b_x = 6:10, c_x_y = 11:15, d_z = 16:20)
+reordered_dat <- reorder_cols(dx, c("x", "z"))
 ```
 
 

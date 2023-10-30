@@ -138,13 +138,15 @@ checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count 
   d.class <- dat %>% select(any_of(c(id.var, repeat.var, by.var)) ) %>%
     sapply(., class)
 
+  int <- dat %>% unite(.,"ID", c(id.var, repeat.var, by.var), sep = "_", remove = FALSE)
+  key <- int %>% select(ID, any_of(c(id.var, repeat.var, by.var))) %>% distinct()
+
   ## transform factors to character
-  dat %<>% rowwise() %>% mutate(across(any_of(c(id.var, repeat.var, by.var, contains(selection))),
+  int %<>% rowwise() %>% mutate(across(any_of(c(id.var, repeat.var, by.var, contains(selection))),
                         ~ifelse(is.factor(.x), as.character(.x), .x))) %>% ungroup()
 
 
-  int <- dat %>% unite(.,"ID", c(id.var, repeat.var, by.var), sep = "_", remove = FALSE)
-  key <- int %>% select(ID, any_of(c(id.var, repeat.var, by.var))) %>% distinct()
+
 
   if(reorder.cols == TRUE){
     int %<>% reorder_cols(., selection = selection)
