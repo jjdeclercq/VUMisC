@@ -164,7 +164,7 @@ checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count 
                                              TRUE ~ simple.names)))
 
   ## account for rows with nothing selected
-  int <- int %>% rowwise(.) %>%
+  int <- int %>% group_by(ID) %>%
         mutate(zero = sum(!is.na(across(contains(selection)))), zero = ifelse(zero ==0, "[Zero selected]", NA))
 
 
