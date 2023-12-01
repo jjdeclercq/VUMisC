@@ -132,7 +132,7 @@ reorder_cols <- function(dat, selection) {
 
 checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count = "any", tidy.labels = FALSE,
                             repeat.var = NULL, stats = "none", toggle.names = FALSE, simple.names = FALSE, add.zero = FALSE,
-                            output = "df",reorder.cols = FALSE, str.rm= NULL, ...){
+                            output = "summary",reorder.cols = FALSE, str.rm= NULL, ...){
 
   ## For matching variable class
   d.class <- dat %>% select(any_of(c(id.var, repeat.var, by.var)) ) %>%

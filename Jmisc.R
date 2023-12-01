@@ -797,10 +797,10 @@ yesno <- function(logic) {ifelse(logic, "Yes", "No")}
 
 #### ESPN theme for reactable
 # https://github.com/kcuilla/reactablefmtr/blob/main/R/themes.R
-espn <- function(font_family = "Arial",
+j.espn <- function(font_family = "Albertus",
                  font_size = 12,
                  font_color = "#6C6D6F",
-                 header_font_family = "Arial",
+                 header_font_family = "Albertus",
                  header_font_size = 11,
                  header_font_color = "#48494a",
                  cell_padding = 7) {
@@ -809,7 +809,7 @@ espn <- function(font_family = "Arial",
     color = font_color,
     backgroundColor = "#ffffff",
     borderWidth = "1px",
-    borderColor = "#ededed",
+    borderColor = "#fafafa",
     stripedColor = "#fafafa",
     highlightColor = "#fafafa",
     cellPadding = cell_padding,
@@ -848,13 +848,13 @@ espn <- function(font_family = "Arial",
   )
 }
 
-j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, 
+j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, theme = espn(),
                         striped = TRUE, compact = TRUE, highlight = TRUE,sortable = TRUE, csv.file = NULL, ...){
   
   output <- dat %>% 
     {if(col.names) sjlabelled::label_to_colnames(.)else .}  %>% 
     reactable(data = ., searchable = searchable, resizable = resizable, sortable= sortable,
-              striped = striped, compact = compact, highlight = highlight, theme = espn(), elementId = csv.file, ...)
+              striped = striped, compact = compact, highlight = highlight, theme = theme, elementId = csv.file, ...)
   
   if(!is.null(csv.file)){
     
@@ -1710,4 +1710,16 @@ session_info <- function(rmd_file){
     jgtt() %>% 
     tab_source_note(., paste0("Current as of ", file.mtime("session_info.R")))
   
+}
+
+
+j.label5 <- function(df, all = FALSE){
+  
+  prev <- collect.labels(df) %>% mutate(combined = paste0("\t\t", variable, ' = "', label, '"', ',\n'))
+  prev[nrow(prev), "combined"] <- gsub(",\n", ")",prev[nrow(prev), "combined"])
+  
+  if(!all) prev %<>% filter(label == "")
+  
+  cat(deparse(substitute(df)), "<- set_label(", deparse(substitute(df)), ",\n",
+      paste0(prev$combined))
 }
