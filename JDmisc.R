@@ -452,7 +452,7 @@ j.espn <- function(font_family = "Albertus",
   )
 }
 
-j.reactable <- function(dat, col.names = TRUE, searchable = TRUE, resizable = TRUE, theme = espn(),
+j.reactable <- function(dat, col.names = TRUE, searchable = TRUE, resizable = TRUE, theme = j.espn(),
                         striped = TRUE, compact = TRUE, highlight = TRUE, sortable = TRUE, csv.file = NULL, ...){
   
   output <- dat %>% 
