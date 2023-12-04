@@ -848,7 +848,7 @@ j.espn <- function(font_family = "Albertus",
   )
 }
 
-j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, theme = espn(),
+j.reactable <- function(dat,col.names = TRUE, searchable = TRUE, resizable = TRUE, theme = j.espn(),
                         striped = TRUE, compact = TRUE, highlight = TRUE,sortable = TRUE, csv.file = NULL, ...){
   
   output <- dat %>% 
@@ -1722,4 +1722,15 @@ j.label5 <- function(df, all = FALSE){
   
   cat(deparse(substitute(df)), "<- set_label(", deparse(substitute(df)), ",\n",
       paste0(prev$combined))
+}
+
+
+recode_factor <- function(df, var){
+  open <- paste0(deparse(substitute(df)), " %>% mutate(", substitute(var), " = forcats::fct_recode(", substitute(var), ",\n")
+  
+  lvs <- sort(unique(eval(parse(text = paste(deparse(substitute(df)), var, sep = "$")))))
+  ll <- data.frame(l = rep('\t\t\t"" = "', length(lvs)), lvs, r = '",\n') %>% mutate(p = paste0(l, lvs, r))
+  ll[nrow(ll), "p"] <- gsub(",\n", "))",ll[nrow(ll), "p"])
+  
+  cat(open, paste0(ll$p) )
 }

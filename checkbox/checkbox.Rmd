@@ -553,6 +553,18 @@ args(jgt)
 ```
 
 
+```{r}
+mx <- ms %>% mutate(race = ac(race))
+
+recode_factor(mx, "race")
+
+ms %>% mutate(race = forcats::fct_recode(race,
+ 			"W" = "White",
+ 			"B" = "Black or African American",
+ 			"O" = "American Indian or Alaska Native",
+ 			"O" = "Decline to Answer",
+ 			"O" = "Unknown"))
+```
 
 
 ```{r}
