@@ -212,94 +212,7 @@ jgtt <- function(dat, col.names = TRUE){
                     data_row.padding = px(4))
 }
 
-##### RMS summary
-# Easily make tribble to label plot/ table
 
-rms.trib <- function(rms.fit){
-  # term = variable name
-  # new = plot/ table labels
-  # level = order
-  # label = label if interaction applied
-  
-  top <- "trib.cols.rms <- tribble(~term, ~new, ~level, ~label,\n"
-  middle <- data.frame(term = rms.fit$Design$name, new = rms.fit$Design$label, 
-                       level = 1:length(rms.fit$Design$name), label = rms.fit$Design$label) %>% 
-    mutate(x = paste("            '", paste(term, new, level, label, sep = "', '"),"',\n", sep = "")) %$% x
-  middle[length(middle)] <- gsub(",\n", ")", middle[length(middle)])
-  cat(top, middle)
-  
-}
-
-## Maybe break into 3 separate pieces?
-
-rms.sum.frame <- function(summary, plot = FALSE, trib, breaks = seq(0.6, 2, .2), int = TRUE){
-  
-  cap <- attr(summary, "adjust") %>% 
-    str_split(., "\\s") %>% unlist() %>% 
-    data.frame(adjust = .) %>% 
-    separate(adjust, into = c("term", "adjust"), sep = "=", fill = "right") %>% 
-    left_join(., trib, by = "term") %>% na.omit() %>% arrange(level) %>% 
-    mutate(L = paste(label, adjust, sep = ": ")) %$% L %>% 
-    paste0(collapse = "; ") %>% paste("Interaction terms adjusted to:", ., sep = "\n")
-  
-  if(int == FALSE){cap <- ""}
-  
-  res <- tibble::as_tibble(summary, rownames = "term")
-  names(res) <- c("term", "low", "high", "diff", "effect", "std.error", "conf.low", "conf.high", "type")
-  res$term <- trimws(res$term)
-  
-  res <- res %>% 
-    ## Separate variable names from adjust-to values
-    separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
-    ## Create character versions of all low/high values for each row
-    mutate(vt = ifelse(!is.na(diff), "Continuous", "Categorical"),
-           highc = ifelse(!is.na(highc), highc,
-                          ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
-                                 as.character(round(high, 2)))),
-           highc = ifelse(is.na(highc), dplyr::lag(highc), highc),
-           lowc = ifelse(!is.na(lowc), lowc,
-                         ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
-                                as.character(round(low, 2)))),
-           lowc = ifelse(is.na(lowc), dplyr::lag(lowc), lowc),
-           ## "term" will temporarily be "variable, [coef or ratio]"
-           term = ifelse(term %in% c("Hazard Ratio", "Odds Ratio"),
-                         sprintf("%s, ratio", dplyr::lag(term)),
-                         sprintf("%s, coef", term))) %>%
-    dplyr::select(-type, -low, -high) %>%
-    separate(term, into = c("term", "type"), sep = ", ") %>%
-    filter(type == "ratio") %>%
-    left_join(., trib, by = "term" ) %>%
-    mutate(facet = ifelse(vt == "Continuous", new, paste(new, lowc, sep = "\n Ref: ")),
-           facet = fct_reorder(facet, level, min),
-           axis = ifelse(vt == "Continuous", paste(highc, lowc, sep = " vs. "), highc))
-  
-  res.plot <- res %>%
-    ggplot(., aes(x = effect, y = axis)) + geom_point() + 
-    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0) +
-    theme_classic() + 
-    geom_vline(xintercept = 1, linetype = 2) + 
-    labs(x = "Hazard ratio", y = NULL) +
-    facet_grid(facet~., scales = "free_y", switch = "y")+
-    theme(strip.text.y.left = element_text(angle = 0))+ 
-    theme(strip.background  = element_blank()) + 
-    theme(panel.spacing.y = unit(0,"line")) +
-    theme(strip.placement = 'outside') +
-    scale_x_continuous(breaks = breaks) +
-    theme(panel.grid.major.x = element_line(colour = "gray90"), 
-          panel.grid.minor.x = element_line(colour = "gray95", 
-                                            size = 0.3), 
-          plot.background = element_rect(fill = "ghostwhite", size = 1.3)) + 
-    theme(plot.caption = element_text(size = 7, hjust = 0)) +
-    labs(caption = cap)
-  
-  res.table <- res %>% arrange(level)%>% mutate(levels = paste(highc, lowc, sep = " vs. ")) %>% 
-    select(label, levels, effect, conf.low, conf.high)%>% mutate(across(where(is.numeric), ~round(.x, 3))) %>% 
-    jable(., caption = "Model summary") %>% kableExtra::collapse_rows(., columns = 1) 
-  
-  if(int == TRUE){ res.table <- res.table %>% kableExtra::add_footnote(., label = cap)}
-  
-  ifelse(plot, return(res.plot), return(res.table))
-}
 
 
 ### Interaction plot
@@ -521,43 +434,54 @@ namify.data.frame <- function(x){
 
 
 
-rms.sum.table <- function(summary, trib){
+##### RMS summary
+# Easily make tribble to label plot/ table
+
+rms.trib <- function(rms.fit){
+  # term = variable name
+  # new = plot/ table labels
+  # level = order
+  # label = label if interaction applied
   
-  res <- tibble::as_tibble(summary, rownames = "term")
-  names(res) <- c("term", "low", "high", "diff", "effect", "std.error", "conf.low", "conf.high", "type")
-  res$term <- trimws(res$term)
+  top <- "trib.cols.rms <- tribble(~term, ~new, ~level, ~label,\n"
+  middle <- data.frame(term = rms.fit$Design$name, new = rms.fit$Design$label, 
+                       level = 1:length(rms.fit$Design$name), label = rms.fit$Design$label) %>% 
+    mutate(x = paste("            '", paste(term, new, level, label, sep = "', '"),"',\n", sep = "")) %$% x
+  middle[length(middle)] <- gsub(",\n", ")", middle[length(middle)])
+  cat(top, middle)
   
-  res <- res %>% 
-    ## Separate variable names from adjust-to values
-    separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
-    ## Create character versions of all low/high values for each row
-    mutate(vt = ifelse(!is.na(diff), "Continuous", "Categorical"),
-           highc = ifelse(!is.na(highc), highc,
-                          ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
-                                 as.character(round(high, 2)))),
-           highc = ifelse(is.na(highc), dplyr::lag(highc), highc),
-           lowc = ifelse(!is.na(lowc), lowc,
-                         ifelse(term %in% paste(c("Hazard", "Odds"), "Ratio"), NA,
-                                as.character(round(low, 2)))),
-           lowc = ifelse(is.na(lowc), dplyr::lag(lowc), lowc),
-           ## "term" will temporarily be "variable, [coef or ratio]"
-           term = ifelse(term %in% c("Hazard Ratio", "Odds Ratio"),
-                         sprintf("%s, ratio", dplyr::lag(term)),
-                         sprintf("%s, coef", term))) %>%
-    dplyr::select(-type, -low, -high) %>%
-    separate(term, into = c("term", "type"), sep = ", ") %>%
-    filter(type == "ratio") %>%
-    left_join(., trib, by = "term" ) %>%
-    mutate(facet = ifelse(vt == "Continuous", new, paste(new, lowc, sep = "\n Ref: ")),
-           facet = fct_reorder(facet, level, min),
-           axis = ifelse(vt == "Continuous", paste(highc, lowc, sep = " vs. "), highc))
-  res
 }
 
-rms.sum.table2 <- function(summary, trib, anova){
+
+
+rms.int.adj <- function(summary){
   
-  rtab <- data.frame(anova) %>%add_rownames() %>%
-    filter(rowname != "TOTAL") %>% rename(term = rowname)
+  if(attr(summary, "adjust")==""){
+    return(NULL)
+  }
+  
+  cap <- attr(summary, "adjust") %>% 
+    str_split(., "\\s") %>% unlist() %>% 
+    data.frame(adjust = .) %>% 
+    separate(adjust, into = c("term", "adjust"), sep = "=", fill = "right") %>% 
+    left_join(., trib.cols.rms, by = "term") %>% na.omit() %>% arrange(level) %>% 
+    mutate(L = paste(label, adjust, sep = ": ")) %$% L %>% 
+    paste0(collapse = "; ") %>% paste("Interaction terms adjusted to:", ., sep = "\n")
+  
+  return(cap)
+  
+}
+
+
+rms.sum.table3 <- function(summary, trib, anova = NULL, raw = FALSE){
+  
+  if("anova.rms" %in% class(anova)){
+  rtab <- data.frame(anova) %>%rownames_to_column() %>%
+    filter(rowname != "TOTAL") %>% rename(term = rowname) %>% 
+    mutate(P = format.pval(P, digits = 3, eps = 0.001))
+  }
+  
+  cap <- rms.int.adj(summary)
   
   res <- tibble::as_tibble(summary, rownames = "term")
   names(res) <- c("term", "low", "high", "diff", "effect", "std.error", "conf.low", "conf.high", "type")
@@ -589,13 +513,46 @@ rms.sum.table2 <- function(summary, trib, anova){
            axis = ifelse(vt == "Continuous", paste(highc, lowc, sep = " vs. "), highc))%>% 
     arrange(level)%>% 
     mutate(levels = paste(highc, lowc, sep = " vs. ")) %>% 
-    left_join(., rtab, by = "term") %>%
-    select(label, levels, OR= effect, conf.low, conf.high, `d.f.`, P)%>% 
-    mutate(across(where(is.numeric), ~round(.x, 3)))
+    {if(!is.null(anova)) left_join(., rtab, by = "term") else .} 
   
-  res
+  if(isTRUE(raw)){
+    return(res)
+  } else{
+  return(res%>%
+           select(label, levels, OR= effect, conf.low, conf.high, any_of(c('d.f.', 'P'))) %>% 
+           mutate(across(where(is.numeric), ~round(.x, 3))) %>% 
+           jgtt(.) %>% tab_footnote(., cap))
+  }
 }
   
+
+rms.forest.plot <- function(summary, trib, breaks = seq(0.6, 2, .2)){
+  
+  cap <- rms.int.adj(summary)
+  
+  res <- rms.sum.table3(summary = summary, trib = trib, raw = TRUE)
+  
+  
+  res %>% mutate(across(where(is.numeric), as.numeric)) %>% 
+    ggplot(., aes(x = effect, y = axis)) + geom_point() + 
+    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0) +
+    theme_classic() + 
+    geom_vline(xintercept = 1, linetype = 2) + 
+    labs(x = "Hazard ratio", y = NULL) +
+    facet_grid(facet~., scales = "free_y", switch = "y")+
+    theme(strip.text.y.left = element_text(angle = 0))+
+    theme(strip.background  = element_blank()) +
+    theme(panel.spacing.y = unit(0,"line")) +
+    theme(strip.placement = 'outside') +
+    theme(panel.grid.major.x = element_line(colour = "gray90"),
+          panel.grid.minor.x = element_line(colour = "gray95",
+                                            size = 0.3),
+          plot.background = element_rect(fill = "ghostwhite", size = 1.3)) +
+    theme(plot.caption = element_text(size = 7, hjust = 0)) +
+    labs(caption = cap)
+  
+}
+
 
 get_toc <- function(rmd_file) {
   ## Takes in a rmdfile name or path
@@ -726,4 +683,197 @@ rca_dictionary <- function(rcon, included.ids, id.var = "record_id"){
 }
 
 
+date_dists <- function(dat, included.ids = NULL, id.var = "record_id", n_include = 10, label.src = NULL){
+  
+  if(is_null(label.src)){
+    label.df <- collect.labels(dat)
+  } else {
+    label.df <- collect.labels(label.src)
+  }
 
+  dat %>% clear.labels()%>% ungroup() %>% 
+    {if(!is.null(included.ids)) filter(., record_id %in% included.ids) else . } %>%
+    select(!!sym(id.var), where(is.Date))%>%
+    pivot_longer(., c(-!!sym(id.var)), values_drop_na = TRUE) %>%
+    arrange(name, value) %>% group_by(name) %>%
+    mutate(n = n(), sequence = 1:n(), value = ymd(value))%>%
+    mutate(date2 = if_else(between(sequence, (n_include + 1), max(sequence)-n_include), as.Date(NA),value)) %>%
+    rename( variable = name, date = date2) %>%
+    left_join(., label.df) %>%
+    mutate(variable = paste0(label, "(", variable, ") [N = ",n, "]"))
+}
+
+
+
+archive <- function(DAT){
+  
+  NEWDAT <- DAT
+  timestamp <- format(Sys.time(), "%Y.%m.%d %H.%M.%S")
+  dat_name <- deparse(substitute(DAT))
+  archive_path <- paste0(getwd(), "/archive/", dat_name)
+  file_path <- paste0(archive_path, "/",dat_name," " ,timestamp ,".rda")
+  archive_file_details <- paste0(archive_path, "/archive_summary_", dat_name, ".rda")
+  
+  if(!dir.exists(paste0(getwd(), "/archive"))){
+    dir.create(paste0(getwd(), "/archive"))
+  }
+  
+  if(!dir.exists(archive_path)){
+    
+    dir.create(archive_path)
+    
+    ARCHIVE <- DAT
+    save(ARCHIVE,
+         file= file_path,
+         compress='xz', compression_level=9)
+    
+    archive_details <- data.frame(root = archive_path, 
+                                  file = list.files(archive_path)) %>%
+      mutate(path = paste(root, file, sep = "/"), download.time = file.mtime(path),
+             rows = dim(ARCHIVE)[1], cols = dim(ARCHIVE)[2], 
+             n.diffs = 0)
+    
+    save(archive_details,
+         file=archive_file_details,
+         compress='xz', compression_level=9)
+    
+    return(paste("Archive directory created at", archive_path))
+    
+  }
+  
+  ## Get most recent data
+  load(archive_file_details)
+  recent_data_detail <- archive_details %>%
+    filter(download.time == max(download.time))
+  
+  ## Check to see if data are the same between versions
+  load(recent_data_detail$path) ##This loads ARCHIVE, which is the most recent saved data
+  
+  if(isTRUE(all.equal(ARCHIVE, NEWDAT))){
+    return("No changes made to data")
+  } else {
+    ## Save new data
+    ARCHIVE <- DAT
+    save(ARCHIVE,
+         file=file_path,
+         compress='xz', compression_level=9)
+    
+    ## Save archive summary
+
+    
+    current_data_detail <- data.frame(root = archive_path, 
+                                      file = list.files(archive_path)) %>%
+      mutate(path = paste(root, file, sep = "/"), download.time = file.mtime(path),
+             rows = dim(NEWDAT)[1], cols = dim(NEWDAT)[2], n.diffs = NA) %>% 
+      filter(!grepl("archive_summary_|changelog_output", file)) %>%
+      filter(download.time == max(download.time))
+    
+    archive_details <- rbind(archive_details, current_data_detail)
+    
+    save(archive_details,
+         file=archive_file_details,
+         compress='xz', compression_level=9)
+    
+    return(print("New copy of data saved"))
+  }
+  
+}
+
+changelog2 <- function(dat, id.vars) {
+  
+  ## get archive summary path
+  dat_name <- deparse(substitute(dat))
+  archive_path <- paste0(getwd(), "/archive/", dat_name)
+  archive_file_details <- paste0(archive_path, "/archive_summary_", dat_name, ".rda")
+  changelog_output_file <- paste0(archive_path, "/changelog_output_", dat_name, ".rda")
+  
+  
+  ## load archive summary
+  load(archive_file_details)
+  
+  ## determine if comparisons need to be run and terminate if no  
+  comparisons_to_run <-  archive_details %>% 
+    mutate(n = 1:n(), y = ifelse(is.na(n.diffs), n, NA)) %>% pull(y) %>% na.omit()
+  
+  if(length(comparisons_to_run)==0){
+    return("No comparisons needed")
+  }
+  
+  ## if no comparisons have be made yet, initialize DFs  
+  
+  if(!file.exists(changelog_output_file)){
+    
+    diffs_by_var <- data.frame()
+    diffs_by_id <- data.frame()
+    summary_comp_table <- data.frame()
+    vars_not_shared <- data.frame()
+    
+  } else{
+    ## If comparison data exists, load previous comparisons  
+    
+    load(changelog_output_file)
+    
+    diffs_by_var = changelog_output$diffs_by_var 
+    diffs_by_id = changelog_output$diffs_by_id 
+    summary_comp_table = changelog_output$summary_comp_table 
+    vars_not_shared = changelog_output$vars_not_shared
+    
+  }
+  
+  ## Run 'compare' on new data only
+  for(i in comparisons_to_run){
+    
+    load(archive_details$path[i])
+    p1 <- ARCHIVE
+    load(archive_details$path[i-1])
+    p2 <- ARCHIVE
+    
+    
+    Cc <- arsenal::comparedf(p1, p2, by = id.vars)
+    sCc <- summary(Cc)
+    archive_details$n.diffs[i] <- arsenal::n.diffs(Cc)
+    
+    
+    diffs_by_var <- rbind(diffs_by_var,
+                          diffs(Cc, by.var = TRUE) %>% filter(n>0|NAs>0)  %>%
+                            mutate(x = ac(archive_details$download.time[i]),
+                                   y = ac(archive_details$download.time[i-1]),
+                                   comparison = paste0(i, " vs ", (i-1))) %>% 
+                            select(comparison, var = var.x, n, NAs))
+    
+    diffs_by_id <- rbind(diffs_by_id,
+                         diffs(Cc) %>%
+                           mutate(x = archive_details$download.time[i],
+                                  y = archive_details$download.time[i-1],
+                                  comparison = paste0(i, " vs ", (i-1)))%>% 
+                           select(all_of(id.vars), comparison, var = var.x, x, values.x, values.y)) 
+    
+    summary_comp_table <- rbind(summary_comp_table,
+                                sCc$comparison.summary.table %>%
+                                  mutate(comparison = paste0(i, " vs ", (i-1))))
+    
+    vars_not_shared <- rbind(vars_not_shared,
+                             sCc$vars.ns.table %>%
+                               mutate(comparison = paste0(i, " vs ", (i-1))))
+    
+    
+  }     
+  
+  ## create and save new copy of changelog data  
+  
+  changelog_output <- list(diffs_by_var = diffs_by_var, diffs_by_id = diffs_by_id, 
+                           summary_comp_table = summary_comp_table, vars_not_shared = vars_not_shared)
+  
+  save(changelog_output,
+       file=changelog_output_file,
+       compress='xz', compression_level=9)  
+  
+  ## Save n.diffs to archive summary
+  save(archive_details,
+       file=archive_file_details,
+       compress='xz', compression_level=9)
+  
+  
+  return(paste(length(comparisons_to_run), "comparisons run.\nSummaries saved to:", changelog_output_file))
+  
+}
