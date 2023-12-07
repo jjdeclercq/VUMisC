@@ -685,7 +685,7 @@ rca_dictionary <- function(rcon, included.ids, id.var = "record_id"){
 
 date_dists <- function(dat, included.ids = NULL, id.var = "record_id", n_include = 10, label.src = NULL){
   
-  if(is_null(label.src)){
+  if(is.null(label.src)){
     label.df <- collect.labels(dat)
   } else {
     label.df <- collect.labels(label.src)
