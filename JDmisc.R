@@ -489,7 +489,9 @@ rms.sum.table3 <- function(summary, trib, anova = NULL, raw = FALSE){
   
   res <- res %>% 
     ## Separate variable names from adjust-to values
-    separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
+    separate(term, into = c("term", "t2"), sep = " - ", fill = "right") %>%
+    separate(t2, into = c("highc", "lowc"), sep = ":", fill = "right") %>%
+    # separate(term, into = c("term", "highc", "lowc"), sep = " *[-:] *", fill = "right") %>%
     ## Create character versions of all low/high values for each row
     mutate(vt = ifelse(!is.na(diff), "Continuous", "Categorical"),
            highc = ifelse(!is.na(highc), highc,
