@@ -508,7 +508,7 @@ rms.sum.table3 <- function(summary, trib, anova = NULL, raw = FALSE){
                          sprintf("%s, coef", term))) %>%
     dplyr::select(-type, -low, -high) %>%
     separate(term, into = c("term", "type"), sep = ", ") %>%
-    filter(type == "ratio") %>%
+    group_by(term, highc, lowc) %>%  summarise_all(., last) %>% ungroup() %>% 
     left_join(., trib, by = "term" ) %>%
     mutate(facet = ifelse(vt == "Continuous", new, paste(new, lowc, sep = "\n Ref: ")),
            facet = fct_reorder(facet, level, min),
@@ -517,13 +517,21 @@ rms.sum.table3 <- function(summary, trib, anova = NULL, raw = FALSE){
     mutate(levels = paste(highc, lowc, sep = " vs. ")) %>% 
     {if(!is.null(anova)) left_join(., rtab, by = "term") else .} 
   
+  est.type <- res$term[1]
+  
   if(isTRUE(raw)){
     return(res)
-  } else{
+  } else if(est.type == "ratio"){
   return(res%>%
-           select(label, levels, OR= effect, conf.low, conf.high, any_of(c('d.f.', 'P'))) %>% 
+           select(label, levels, ratio = effect, conf.low, conf.high, any_of(c('d.f.', 'P'))) %>% 
            mutate(across(where(is.numeric), ~round(.x, 3))) %>% 
            jgtt(.) %>% tab_footnote(., cap))
+  } else {
+    return(res%>%
+             select(label, levels, effect, conf.low, conf.high, any_of(c('d.f.', 'P'))) %>% 
+             mutate(across(where(is.numeric), ~round(.x, 3))) %>% 
+             jgtt(.) %>% tab_footnote(., cap))
+    
   }
 }
   
