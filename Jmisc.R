@@ -1370,23 +1370,23 @@ update.redcap.changelog <- function(id.vars, archive.location = "../data/archive
     Ff$n.diffs[i] <- arsenal::n.diffs(Cc)
     
     if(arsenal::n.diffs(Cc) >0){
-      Dl <- bind_rows(Dl,
+      Dl <- rbind(Dl,
                       diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
                         mutate(x = ac(Ff$download.time[i]),
                                y = ac(Ff$download.time[i-1]),
                                comparison = paste0(i, " vs ", (i-1))))
       
-      Dff <- bind_rows(Dff,
+      Dff <- rbind(Dff,
                        diffs(Cc) %>%
                          mutate(x = Ff$download.time[i],
                                 y = Ff$download.time[i-1],
                                 comparison = paste0(i, " vs ", (i-1))))
       
-      sct <- bind_rows(sct,
+      sct <- rbind(sct,
                        sCc$comparison.summary.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
       
-      vns <- bind_rows(vns,
+      vns <- rbind(vns,
                        sCc$vars.ns.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
     }
@@ -1470,7 +1470,7 @@ changelog <- function(DAT, by.vars){
   NEWDAT <- DAT
   timestamp <- format(Sys.time(), "%Y.%m.%d %H.%M")
   dat_name <- deparse(substitute(DAT))
-  changelog_path <- paste0("../data/archive/changelog_", dat_name)
+  changelog_path <- paste0(getwd(), "/changelog/changelog_", dat_name)
   changelog_file <- paste0(changelog_path, "/changelog_", dat_name, ".rda")
   archive_path <- paste0(changelog_path, "/",dat_name," " ,timestamp ,".rda")
   
@@ -1530,24 +1530,24 @@ changelog <- function(DAT, by.vars){
     
     if(arsenal::n.diffs(Cc) >0){
       ## Differences by variable
-      Dl <- bind_rows(Dl,
+      Dl <- rbind(Dl,
                       diffs(Cc, by.var = TRUE)%>% filter(n>0|NAs>0)  %>%
                         mutate(x = ac(Ff$file[i]),
                                y = ac(Ff$file[i-1]),
                                comparison = paste0(i, " vs ", (i-1))))
       ## Individual differences
-      Dff <- bind_rows(Dff,
+      Dff <- rbind(Dff,
                        diffs(Cc) %>%
                          mutate(x = Ff$file[i],
                                 y = Ff$file[i-1],
                                 comparison = paste0(i, " vs ", (i-1))))
       ## Summary comparison table
-      sct <- bind_rows(sct,
+      sct <- rbind(sct,
                        sCc$comparison.summary.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
       
       ## variables not shared
-      vns <- bind_rows(vns,
+      vns <- rbind(vns,
                        sCc$vars.ns.table %>%
                          mutate(comparison = paste0(i, " vs ", (i-1))))
       
@@ -1626,14 +1626,14 @@ publish_to_vsp <- function(qmd, output, directory){
   
   ## Publish report to OneDrive for VSP (copied from vpn directory)
   
-  # # Pull latest data from redcap
-  # notes <- update_redcap_notes()
-  
   of <- paste0(Sys.Date()," ", output, ".html" )
   
-  # rmarkdown::render
-  rmarkdown::render(input = qmd, 
-                        output_file = of)
+  if(grepl("qmd", qmd)){
+    quarto::quarto_render(input = qmd, , output_file = of)
+  }else{
+    # rmarkdown::render
+    rmarkdown::render(input = qmd, output_file = of)
+  }
   
   # # Quarto does not yet support rendering to different directory -- bleh
   file.copy(from = of, to = directory, overwrite = TRUE)
