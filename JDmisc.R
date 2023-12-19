@@ -67,7 +67,7 @@ j.label5 <- function(df, all = FALSE){
   
   if(!all) prev %<>% filter(label == "")
   
-  cat(deparse(substitute(df)), "<- set_label(", deparse(substitute(df)), ",\n",
+  cat(deparse(substitute(df)), "<- labelVector::set_label(", deparse(substitute(df)), ",\n",
       paste0(prev$combined))
 }
 
@@ -886,4 +886,37 @@ changelog2 <- function(dat, id.vars) {
   
   return(paste(length(comparisons_to_run), "comparisons run.\nSummaries saved to:", changelog_output_file))
   
+}
+
+j_dataChk <- function (d, checks, id, summary = TRUE) 
+{   
+  # Borrowed extensively from FHarrell's qreport::dataChk
+  omit0 = TRUE
+  byid = TRUE
+  jj <- list()
+  s <- NULL
+  X <- Dat <- list()
+  
+  
+  for (i in 1:length(checks)) {
+    x <- checks[i]
+    cx <- as.character(x)
+    cx <- gsub("%between% c\\((.*?)\\)", "[\\1]", cx)
+    form <- as.formula(paste("~", cx))
+    vars.involved <- all.vars(form)
+    z <- d[eval(x), c(id, vars.involved), with = FALSE]
+    
+    no <- nrow(z)
+    if (byid && no > 0) {
+      Da <- z[, id, with = FALSE]
+      Da[, `:=`(Check, cx)]
+      Da[, `:=`(Values, do.call(paste, z[, vars.involved, with = FALSE]))]
+      Dat[[cx]] <- Da
+    }
+    s <- rbind(s, data.frame(Check = cx, n = no))
+  }
+  
+  Dat <- rbindlist(Dat, fill = TRUE)
+  
+  return(list(s = s, d = Dat))
 }

@@ -1,5 +1,5 @@
 #' ---
-#' title: "MS Fumarates"
+#' title: "JDMisc functions"
 #' author:
 #' - Josh DeClercq
 #' - Department of Biostatistics
@@ -21,9 +21,9 @@
 #'   eval: true
 #'   warning: false
 #' number-sections: true
-#' monobackgroundcolor: "#DAE6DF"
-#' code-fold: true
-#' code-block-bg: "#DAE6DF"
+#' monobackgroundcolor: "#F5F5F5"
+#' code-fold: show
+#' code-block-bg: "#F5F5F5"
 #' code-block-border-left: "#BADBCB"
 #' callout-appearance: minimal
 #' self-contained: true
@@ -57,8 +57,6 @@ require(redcapAPI)
 require(readxl)
 
 
-
-
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/checkbox/R/checkbox_funs.R")
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
@@ -67,11 +65,31 @@ select <- dplyr::select
 
 
 #' 
+#' # Objective
+#' 
+#' ## Background
+#' 
+#' Throughout my time as a biostatistician in the department, I've developed a handful of convenience functions. I think they're useful in my day-to-day work, and I think they can be useful for others. However, I usually write code in a way that's easy for me to understand, but my style unlikely follows best-practice guidelines, and there is potentially a lot of issues that may arise. This document will show the ideal use cases for these functions.
+#' 
+#' ## Goals
+#' 
+#' The goal of this document is to showcase some of this work, and to use it as a springboard into the development of a collaborative R package, wherein all members of the VUMC Department of Biostatistics can contribute functions to a central repository. Sharing code amongst the department should conceivably increase our individual coding skills as well as productivity.
+#' 
+#' This work is hosted on my [Github](https://github.com/jjdeclercq/VUMisC), but I would eagerly transfer ownership rights to anyone who is willing. (My git knowledge is quite limited at the moment.)
+#' 
+#' ## Data
+#' 
+#' This report uses the `titanic3` data. This report isn't intended to be a description of the best way to analyze this data.
+#' 
 
 # Retreive data
 getHdata(titanic3)
 
-t3 <- titanic3 %>% clear.labels() %>% select(-c( boat:home.dest, ticket))
+t3 <- titanic3 %>% 
+  select(-c( boat:home.dest, ticket)) %>%  
+  mutate(id = 1:n()) ## Create a unique ID variable for each row
+
+archive(t3) ## this will be discussed later, but essentially this takes an impression of the current data for later use
 
 # Data cleaning/ Create new variables
 t3 %<>% mutate(cabin = as.character(cabin), cabin = ifelse(cabin == "", NA, cabin))
@@ -81,14 +99,24 @@ t3 %<>% mutate(missing.age = yesno(is.na(age)))
 #' 
 #' # Labels
 #' 
-#' ## Adding labels 
+#' ## Clear labels
+#' 
+
+t3 %<>% clear.labels()
+
+#' 
+#' ## Adding labels
+#' 
+#' `j.label5()` is code that outputs text suitable for pasting into your markdown document.
 #' 
 #| code-fold: show
 j.label5(t3)
 
 #' 
+#' Labels can then be filled in by hand.
+#' 
 
-t3 <- set_label( t3 ,
+t3 <- labelVector::set_label( t3 ,
                  name = "Passenger name",
  		             pclass = 'Passenger class',
                  survived = 'Survived',
@@ -101,18 +129,22 @@ t3 <- set_label( t3 ,
                  cabin = "Cabin")
 
 #' 
+#' Subsequent execution of the code will have the added labels incorporated. Toggling the `all` argument determines whether all variables will be displayed or just those without labels
+#' 
 #| code-fold: show
 j.label5(t3, all = TRUE)
 j.label5(t3, all = FALSE)
 
 #' 
 
-t3 <- set_label( t3 ,
- 		s.cat = "",
- 		missing.age = "")
+t3 <- labelVector::set_label( t3 ,
+ 		s.cat = "Survived",
+ 		missing.age = "Missing age")
 
 #' 
 #' ## Collect labels
+#' 
+#' Create a data frame of variable names and the corresponding label.
 #' 
 
 collect.labels(t3)
@@ -120,9 +152,12 @@ collect.labels(t3)
 #' 
 #' ## Removing labels
 #' 
+#' Sometimes labelled data can present challenges as shown by the example below:
+#' 
 #| eval: false
-## t3 %>% select(name, age, sibsp) %>% pivot_longer(., -1, names_to = "var")
-## 
+t3 %>% select(name, age, sibsp) %>% 
+  pivot_longer(., -1, names_to = "var")
+
 
 #' 
 #' ```         
@@ -136,15 +171,21 @@ collect.labels(t3)
 #'  3. tidyr:::pivot_longer.data.frame(., -1, names_to = "var")
 #' ```
 #' 
+#' `clear.labels`
+#' 
+#' I did not write this function ([stackoverflow](https://stackoverflow.com/questions/2394902/remove-variable-labels-attached-with-foreign-hmisc-spss-import-functions)) but I find it immensely helpful in removing all labels from a data frame.
+#' 
 
-t3.labelled <- t3
+t3.labelled <- t3 ## create a second data frame for regaining labels later
 t3 <- clear.labels(t3)
 
 
-t3 %>% select(name, age, sibsp) %>% pivot_longer(., -1, names_to = "var")
+t3 %>% select(name, age, sibsp) %>% pivot_longer(., -1, names_to = "var") %>% head()
 
 #' 
 #' ## Adding labels back
+#' 
+#' Not my function, but I find this to be very helpful.
 #' 
 
 t3 <- sjlabelled::copy_labels(t3, t3.labelled)
@@ -152,20 +193,30 @@ t3 <- sjlabelled::copy_labels(t3, t3.labelled)
 #' 
 #' ## Clearing empty columns
 #' 
+#' Sometimes there are columns in the data that don't carry any information. `remove.blank.columns2()` will remove all columns from the data that are either all `NA` or all empty characters (`""`).
+#' 
 
 t3 %<>% mutate(x = "", y = NA, z= as.Date(NA))
 
 t3 %<>% remove.blank.columns2()
 
 #' 
+
+names(t3)
+
+#' 
 #' # Factors
 #' 
 #' ## label_factor
+#' 
+#' Produces code that can be pasted into your report for adding in variable labels:
 #' 
 
 label_factor(t3, "sex")
 
 
+#' 
+#' Can accommodate any number of factor variables:
 #' 
 
 t3 %>% select(where(is.factor)) %>% names() %>% 
@@ -282,7 +333,7 @@ trib.cols.rms <- tibble::tribble(
 
 
 #' 
-#' ## rms.sum.table2
+#' ## rms.sum.table3
 #' 
 
 
@@ -294,6 +345,38 @@ rms.sum.table3(summary = summary(t3.mod.int), trib.cols.rms, anova = anova(t3.mo
 
 rms.sum.table3(summary = summary(t3.mod.int, age = c(25, 50, 75), sex = "female"), 
                trib.cols.rms, anova = anova(t3.mod.int)) 
+
+bind_rows(
+  rms.sum.table3(summary = summary(t3.mod, age = c(70, 55)), trib.cols.rms, raw = TRUE) ,
+rms.sum.table3(summary = summary(t3.mod, age = c(55, 40)), trib.cols.rms, raw = TRUE) ) %>% 
+  bind_rows(.,
+            rms.sum.table3(summary = summary(t3.mod, age = c(40, 25)), trib.cols.rms, raw = TRUE)) %>% 
+    bind_rows(.,
+            rms.sum.table3(summary = summary(t3.mod, age = c(25, 15)), trib.cols.rms, raw = TRUE)) %>% 
+      bind_rows(.,
+            rms.sum.table3(summary = summary(t3.mod, age = c(15, 10)), trib.cols.rms, raw = TRUE)) %>% 
+        bind_rows(.,
+            rms.sum.table3(summary = summary(t3.mod, age = c(10, 5)), trib.cols.rms, raw = TRUE)) %>% 
+  distinct() %>% mutate(across(where(is.numeric), as.numeric)) %>% 
+  mutate(m = as.numeric(highc)) %>% 
+  arrange(level, m, highc) %>% 
+  mutate(axis = fct_inorder(axis) ) %>% 
+    ggplot(., aes(x = effect, y = axis)) + geom_point() + 
+    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0) +
+    theme_classic() + 
+    geom_vline(xintercept = 1, linetype = 2) + 
+    labs(x = "Hazard ratio", y = NULL) +
+    facet_grid(facet~., scales = "free_y", switch = "y")+
+    theme(strip.text.y.left = element_text(angle = 0))+
+    theme(strip.background  = element_blank()) +
+    theme(panel.spacing.y = unit(0,"line")) +
+    theme(strip.placement = 'outside') +
+    theme(panel.grid.major.x = element_line(colour = "gray90"),
+          panel.grid.minor.x = element_line(colour = "gray95",
+                                            size = 0.3),
+          plot.background = element_rect(fill = "ghostwhite", size = 1.3)) +
+    theme(plot.caption = element_text(size = 7, hjust = 0))+
+  labs(x = "Odds ratio")
 
 
 #' 
@@ -307,7 +390,7 @@ rms.forest.plot(summary(t3.mod.int, age = c(50, 30, 15)), trib.cols.rms) +
   scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20)) +
   labs(x = "Odds ratio")
 
-plot(anova(t3.mod.int))
+
 
 #' 
 #' ## Interaction contrasts
@@ -326,12 +409,88 @@ int.react(t3_int)
 int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
 
 #' 
-#' 
 #' # Appendix
+#' 
+#' ## archive and changelog
+#' 
+#| eval: false
+
+
+    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+    ad0 <- archive_details # expected 1 row - yes
+
+changelog2(t3, "id") ## expected no action - yes
+archive(t3) ## expected save new data - yes
+archive(t3) ## expect no action- yes
+
+    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+    ad <- archive_details # expected 2 row - yes
+
+changelog2(t3, "id")  ##expect new log - yes
+
+    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+    ad2 <- archive_details# expected 2 row - yes
+
+archive(t3) ## expect no action - yes
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+ad3 <- archive_details # expected 2 row - yes
+
+
+t3 %<>% mutate(z = 11, w = 12)
+Sys.sleep(1)
+changelog2(t3, "id") ## expected no action - yes
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+ad4 <- archive_details ##expected 2 rows - yes
+
+
+archive(t3) ## expect new save - yes
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+ad5 <- archive_details # expect 3 rows - yes
+
+changelog2(t3, "id") # expect new log  - yes
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+ad6 <- archive_details # expect 3 rows - yes
+
+
+archive(t3) ## expect no action - yes
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+ad7 <- archive_details # expect 3 rows - ys
+
+
+changelog2(t3, "id")
+t3 %<>% mutate(z = NULL, a = "b")
+Sys.sleep(1)
+changelog2(t3, "id")
+archive(t3)
+archive(t3)
+t3 %<>% mutate(y = 122, w = 293, z = 111, a = "w")
+Sys.sleep(1)
+changelog2(t3, "id")
+archive(t3)
+
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
+# ad <- archive_details
+archive_details; ad
+
+## For LATER -- why is changelog impacting archive???
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
+changelog_output$diffs_by_var
+
+#' 
 #' ## get_toc
+#' 
 
 get_toc("JDmisc.qmd") %>% j.reactable(., csv.file = "JDmisc toc")
 
 #' 
+#' ## session_info
 #' 
-#' 
+
+session_info("JDmisc.qmd")
+
