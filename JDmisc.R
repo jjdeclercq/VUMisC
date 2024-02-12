@@ -888,6 +888,14 @@ changelog2 <- function(dat, id.vars) {
   
 }
 
+retrieve_archive <- function(dat, wd = getwd()){
+  fp <- paste0(wd, "/archive/", dat, "/archive_summary_", dat, ".rda")
+  load(fp)
+  ad <- archive_details
+  return(ad)
+}
+
+
 j_dataChk <- function (d, checks, id, summary = TRUE) 
 {   
   # Borrowed extensively from FHarrell's qreport::dataChk

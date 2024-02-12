@@ -56,6 +56,7 @@ require(htmltools)
 require(keyring)
 require(redcapAPI)
 require(readxl)
+require(arsenal)
 
 
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
@@ -195,6 +196,13 @@ Not my function, but I find this to be very helpful.
 t3 <- sjlabelled::copy_labels(t3, t3.labelled)
 ```
 
+`clear.label.class()` is a nice workaround for labelled data. It just removes the class "label" from the variable, but still retains the utility of labelled data.
+
+```{r}
+t3 <- clear.label.class(t3)
+
+```
+
 ## Clearing empty columns
 
 Sometimes there are columns in the data that don't carry any information. `remove.blank.columns2()` will remove all columns from the data that are either all `NA` or all empty characters (`""`).
@@ -202,6 +210,7 @@ Sometimes there are columns in the data that don't carry any information. `remov
 ```{r}
 t3 %<>% mutate(x = "", y = NA, z= as.Date(NA))
 
+t3 %>% select(x, y, z) %>% head(10)
 t3 %<>% remove.blank.columns2()
 ```
 
@@ -223,11 +232,14 @@ label_factor(t3, "sex")
 Can accommodate any number of factor variables:
 
 ```{r}
-t3 %>% select(where(is.factor)) %>% names() %>% 
-label_factor(t3, .)
+t3 %>% select(where(is.factor)) %>% 
+  names() %>% 
+  label_factor(t3, .)
 ```
 
 ## recode_factor
+
+Produce editable code using `forcats::fct_recode()`
 
 ```{r}
 recode_factor(t3, "embarked")
@@ -235,6 +247,8 @@ recode_factor(t3, "embarked")
 ```
 
 ## j.trib
+
+Create an editable `tribble` table that can be joined back into original data frame.
 
 ```{r}
 j.trib(t3, "embarked")
@@ -252,6 +266,8 @@ trib.t3<- tribble(~embarked, ~replace,
 
 ## jgt
 
+The package `gtsummary` provides a lot of great functions for summarizing data. The `jgt()` is a wrapper for `tbl_summary` that handles 99% of summary tables that I need to make.
+
 ```{r}
 t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
   jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)
@@ -259,11 +275,15 @@ t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>%
 
 ## jgtt
 
+Simply prints the data using the `gt` package, and stylized to match `jgt` output.
+
 ```{r}
 t3  %>% select(name, age, sex, pclass) %>% head(20) %>% jgtt()
 ```
 
 ## j.reactable
+
+Better at presenting lots of data: tabbed output, searchable text, filtering and embedding data as a csv file are available. The `reactable` package provides a ton a great functionality. `j.reactable` is a convenient wrapper that suits the majority of table needs.
 
 ```{r}
 t3  %>% select(name, age, sex, pclass) %>% 
@@ -271,6 +291,8 @@ t3  %>% select(name, age, sex, pclass) %>%
 ```
 
 # Dates
+
+Create dummy data data using a Cauchy distribution to generate some obvious outliers.
 
 ```{r}
 t3 %<>% 
@@ -293,8 +315,8 @@ t3 <- set_label( t3 ,
 ### Figure
 
 ```{r}
-t3_dates <- t3 %>% rename(record_id = name) %>% 
-date_dists(., id.var = "record_id")
+t3_dates <- t3 %>% 
+  date_dists(., id.var = "id", label.src = t3)
 
 ggplot(t3_dates, aes(x = value)) + 
   geom_histogram(stat = "count", fill = "black", colour = "black", bins = 100) +  
@@ -304,26 +326,44 @@ ggplot(t3_dates, aes(x = value)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(), 
         axis.line.y = element_blank())
+
 ```
 
 ### Table
 
 ```{r}
 t3_dates %>%
-  select(variable, sequence, date, record_id) %>%
+  select(variable, sequence, date, id) %>%
   na.omit() %>%
    j.reactable(., groupBy = c("variable")) 
 ```
 
 # Analysis
 
-## rms.trib
+Fit a logistic model with survival being the outcome. For illustrative purposes, fit one model with an age x sex interaction and one without.
 
 ```{r}
 dd <- datadist(t3)
 options(datadist = "dd", prType = "html", grType='plotly')
 t3.mod <- lrm(s.cat ~ rcs(age, 5) + sex  + pclass + embarked + sibsp, data = t3)
 t3.mod.int <- lrm(s.cat ~ rcs(age, 5) * sex  + pclass + embarked + sibsp, data = t3)
+```
+
+## rms.trib
+
+Takes a model fit of class `rms` and returns an editable tribble for pasting into your code. The resulting saved tribble is used in later applications for summarizing models.
+
+There are 4 columns for entry:
+
+-   **term** - the raw variable name
+
+-   **new** - the variable label, as it will appear in figures
+
+-   **level -** the order in which the variable will appear in tables and figures
+
+-   **label** - the variable label, as it will appear in tables
+
+```{r}
 rms.trib(t3.mod)
 
 trib.cols.rms <- tibble::tribble(
@@ -337,31 +377,85 @@ trib.cols.rms <- tibble::tribble(
 
 ```
 
+Note: the R package [datapasta](https://cran.r-project.org/web/packages/datapasta/vignettes/how-to-datapasta.html) can be really helpful in formatting tribbles, as well as other data formats.
+
 ## rms.sum.table3
 
+This function displays a tidy output of the model summary
+
+-   **summary** - an rms.summary object
+
+-   **trib** - the saved tribble from the `rms.trib` output
+
+-   **anova** - Optional. an rms.anova object. Including this will add on the degrees of freedom and p-values from the anova table.
+
+-   **raw** - Optional. Will output a raw data frame rather than a formatted table
+
+::: panel-tabset
+### Output
+
 ```{r}
+rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, anova(t3.mod))
+```
 
-rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, raw = TRUE) 
+### Raw output
 
-rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, anova(t3.mod)) 
+```{r}
+rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, raw = TRUE)
+```
 
-rms.sum.table3(summary = summary(t3.mod.int), trib.cols.rms, anova = anova(t3.mod.int)) 
+### With interaction
 
+```{r}
+rms.sum.table3(summary = summary(t3.mod.int), trib.cols.rms, anova = anova(t3.mod.int))
+```
+
+### Adjustments via rms.summary()
+
+```{r}
 rms.sum.table3(summary = summary(t3.mod.int, age = c(25, 50, 75), sex = "female"), 
-               trib.cols.rms, anova = anova(t3.mod.int)) 
+               trib.cols.rms, anova = anova(t3.mod.int))
+```
+:::
 
+## rms.forest.plot
+
+Similar to `rms.sum.table3`, this function takes an rms.summary input and the saved tribble from the `rms.trib` output, but instead produces a forest plot
+
+::: panel-tabset
+### Forest plot
+
+```{r}
+rms.forest.plot(summary(t3.mod), trib.cols.rms) +
+  scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20))+
+  labs(x = "Odds ratio")
+```
+
+### With interaction
+
+```{r}
+rms.forest.plot(summary(t3.mod.int, age = c(50, 30, 15)), trib.cols.rms) +
+  scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20)) +
+  labs(x = "Odds ratio")
+
+```
+
+### Possible extensions
+
+```{r}
 bind_rows(
-  rms.sum.table3(summary = summary(t3.mod, age = c(70, 55)), trib.cols.rms, raw = TRUE) ,
-rms.sum.table3(summary = summary(t3.mod, age = c(55, 40)), trib.cols.rms, raw = TRUE) ) %>% 
+  rms.sum.table3(summary = summary(t3.mod, age = c(70, 55), sex = "female"), trib.cols.rms, raw = TRUE) ,
+  rms.sum.table3(summary = summary(t3.mod, age = c(55, 40), sex = "female"), trib.cols.rms, raw = TRUE) ) %>% 
   bind_rows(.,
-            rms.sum.table3(summary = summary(t3.mod, age = c(40, 25)), trib.cols.rms, raw = TRUE)) %>% 
+            rms.sum.table3(summary = summary(t3.mod, age = c(40, 25), sex = "female"), trib.cols.rms, raw = TRUE)) %>% 
     bind_rows(.,
-            rms.sum.table3(summary = summary(t3.mod, age = c(25, 15)), trib.cols.rms, raw = TRUE)) %>% 
+            rms.sum.table3(summary = summary(t3.mod, age = c(25, 15), sex = "female"), trib.cols.rms, raw = TRUE)) %>% 
       bind_rows(.,
-            rms.sum.table3(summary = summary(t3.mod, age = c(15, 10)), trib.cols.rms, raw = TRUE)) %>% 
+            rms.sum.table3(summary = summary(t3.mod, age = c(15, 10), sex = "female"), trib.cols.rms, raw = TRUE)) %>% 
         bind_rows(.,
-            rms.sum.table3(summary = summary(t3.mod, age = c(10, 5)), trib.cols.rms, raw = TRUE)) %>% 
-  distinct() %>% mutate(across(where(is.numeric), as.numeric)) %>% 
+            rms.sum.table3(summary = summary(t3.mod, age = c(10, 5), sex = "female"), trib.cols.rms, raw = TRUE)) %>% 
+  distinct() %>% 
+  mutate(across(where(is.numeric), as.numeric)) %>% 
   mutate(m = as.numeric(highc)) %>% 
   arrange(level, m, highc) %>% 
   mutate(axis = fct_inorder(axis) ) %>% 
@@ -383,31 +477,44 @@ rms.sum.table3(summary = summary(t3.mod, age = c(55, 40)), trib.cols.rms, raw = 
   labs(x = "Odds ratio")
 
 ```
-
-```{r}
-rms.forest.plot(summary(t3.mod), trib.cols.rms) +
-  scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20))+
-  labs(x = "Odds ratio")
-  
-
-rms.forest.plot(summary(t3.mod.int, age = c(50, 30, 15)), trib.cols.rms) +
-  scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20)) +
-  labs(x = "Odds ratio")
-
-
-```
+:::
 
 ## Interaction contrasts
 
-### expand.int and int.react
+Explore any number of permutations of an interaction
+
+### expand.int
+
+This function computes the contrasts for any set of two interacting variables. Five inputs are required:
+
+-   **a.seq** - sequence of variable A
+
+-   **b.seq** - sequence of variable B
+
+-   **A** - name of variable A
+
+-   **B** - name of variable B
+
+-   **fit -** rms model object
 
 ```{r}
-t3_int <- expand.int(seq(10, 70, 10), c("male", "female"), "age", "sex", t3.mod)
+t3_int <- expand.int(seq(10, 70, 10), c("male", "female"), "age", "sex", t3.mod.int)
 
+head(t3_int)
+
+```
+
+### int.react
+
+This function just formats the output of `expand.int`
+
+```{r}
 int.react(t3_int)
 ```
 
 ### int.tile.plot
+
+Produces a tile plot of all requested interaction contrasts
 
 ```{r}
 int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
@@ -417,56 +524,126 @@ int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
 
 ## archive and changelog
 
+These functions are in development still require some fine tuning to get the desired result. The two functions have complementary purpose:
+
+`archive` creates a copy of the inputted data and saves it to an archive directory within your working directory. If it's your first time running `archive` from within the directory, a new folder will be created. If the data are unchanged from the last `archive` call, the data will not be re-saved and the user will be alerted. In addition to creating a time stamped copy of the data, a summary of all archives will be logged and updated. A helper function `retrieve_archive` can be used to access the stored summary file. 
+
+Once archived data exists, `changelog2` will make comparisons across all consecutive archived versions of the data, e.g. 2 vs 1, 3 vs 2, etc. This relies heavily on `arsenal::comparedf()`. If there is only one archived data set or all comparisons have already been run, no new comparisons will be run. The function returns a message to the user with which action has been taken, and if necessitated by changes to the archive, will save a summary of changes from one version of the data to the next. 
+
+The following example steps through the use of the functions with the expected output. Note: `changelog` was run at the very beginning on t3 data.
+
+### Example usage
+```
+[1] "Archive directory created at /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3"
+```
+
 ```{r}
 #| eval: false
 
-
-    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-    ad0 <- archive_details # expected 1 row - yes
-
 changelog2(t3, "id") ## expected no action - yes
+```
+
+```
+[1] "No comparisons needed"
+```
+
+```{r}
 archive(t3) ## expected save new data - yes
+```
+
+```
+[1] "New copy of data saved"
+```
+
+```{r}
+ad0 <- retrieve_archive("t3") # expected 2 row - yes
+
+changelog2(t3, "id") ## expected new comparison - yes
+
+```
+
+
+
+```
+[1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+```
+
+```{r}
+#| eval: false
 archive(t3) ## expect no action- yes
+```
 
-    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-    ad <- archive_details # expected 2 row - yes
+```
+[1] "No changes made to data"
+```
 
-changelog2(t3, "id")  ##expect new log - yes
+```{r}
+#| eval: false
+ad <- retrieve_archive("t3") # expected 2 rows - yes
+changelog2(t3, "id")  ##expect no action - yes
+```
 
-    load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-    ad2 <- archive_details# expected 2 row - yes
+```
+[1] "No comparisons needed"
+```
 
+
+```{r}
+#| eval: false
+t3 %<>% mutate(z = 12, w = 11)
+archive(t3) ## expect new archive- yes
+
+    ad2 <- retrieve_archive("t3")# expected 3 row - yes
+```
+
+```
+[1] "New copy of data saved"
+```
+
+```{r}
+#| eval: false
 archive(t3) ## expect no action - yes
+```
+```
+[1] "No changes made to data"
+```
 
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-ad3 <- archive_details # expected 2 row - yes
+```{r}
+#| eval: false
+changelog2(t3, "id") ## expect updates to logs - yes
+```
 
-
-t3 %<>% mutate(z = 11, w = 12)
-Sys.sleep(1)
-changelog2(t3, "id") ## expected no action - yes
-
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-ad4 <- archive_details ##expected 2 rows - yes
-
-
-archive(t3) ## expect new save - yes
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-ad5 <- archive_details # expect 3 rows - yes
-
-changelog2(t3, "id") # expect new log  - yes
-
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-ad6 <- archive_details # expect 3 rows - yes
+```
+[1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+```
 
 
+```{r}
+#| eval: false
+ad4 <- retrieve_archive("t3") ##expected 3 rows - yes
+
+```
+
+
+```{r}
+#| eval: false
+t3 %<>% mutate(ff = 23)
+changelog2(t3, "id") # expect no action
+archive(t3) ## expect new archive
+changelog2(t3, "id") # expect new log
 archive(t3) ## expect no action - yes
+ad6 <- retrieve_archive("t3") # expect 4 rows - yes
+```
+```
+[1] "No comparisons needed"
+[1] "New copy of data saved"
+[1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+[1] "No changes made to data"
 
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-ad7 <- archive_details # expect 3 rows - ys
+```
 
-
-changelog2(t3, "id")
+```{r}
+#| eval: false
 t3 %<>% mutate(z = NULL, a = "b")
 Sys.sleep(1)
 changelog2(t3, "id")
@@ -476,17 +653,55 @@ t3 %<>% mutate(y = 122, w = 293, z = 111, a = "w")
 Sys.sleep(1)
 changelog2(t3, "id")
 archive(t3)
+changelog2(t3, "id")
 
-
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-# ad <- archive_details
-archive_details; ad
-
-## For LATER -- why is changelog impacting archive???
-
-load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
-changelog_output$diffs_by_var
+ad7 <- retrieve_archive("t3") # expect 6 rows - yes
 ```
+```
+[1] "No comparisons needed"
+[1] "New copy of data saved"
+[1] "No changes made to data"
+[1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+[1] "New copy of data saved"
+[1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+```
+
+### Archive summary
+```{r}
+retrieve_archive("t3") %>% j.reactable()
+```
+
+
+### Changelog output
+::: panel-tabset
+```{r}
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
+```
+
+#### Summary comparison
+```{r}
+changelog_output$summary_comp_table %>% 
+  pivot_wider(., names_from = "comparison", values_from = "value") %>% 
+  j.reactable()
+```
+
+### Differences by ID
+```{r}
+changelog_output$diffs_by_id %>% j.reactable()
+```
+
+#### Variables not shared
+
+```{r}
+changelog_output$vars_not_shared %>% j.reactable()
+```
+
+#### Differences by variable
+```{r}
+changelog_output$diffs_by_var %>% j.reactable()
+```
+
+:::
 
 ## get_toc
 
