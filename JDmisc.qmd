@@ -1,5 +1,5 @@
 ---
-title: "JDMisc functions"
+title: "[JDMisc functions](https://github.com/jjdeclercq/VUMisC)"
 author:
 - Josh DeClercq
 - Department of Biostatistics
@@ -57,6 +57,7 @@ require(keyring)
 require(redcapAPI)
 require(readxl)
 require(arsenal)
+require(data.table)
 
 
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
@@ -101,7 +102,6 @@ t3 %<>% mutate(missing.age = yesno(is.na(age)))
 
 # Labels
 
-## Clear labels
 
 ```{r}
 t3 %<>% clear.labels()
@@ -548,6 +548,7 @@ changelog2(t3, "id") ## expected no action - yes
 ```
 
 ```{r}
+#| eval: false
 archive(t3) ## expected save new data - yes
 ```
 
@@ -556,6 +557,7 @@ archive(t3) ## expected save new data - yes
 ```
 
 ```{r}
+#| eval: false
 ad0 <- retrieve_archive("t3") # expected 2 row - yes
 
 changelog2(t3, "id") ## expected new comparison - yes
@@ -685,7 +687,7 @@ changelog_output$summary_comp_table %>%
   j.reactable()
 ```
 
-### Differences by ID
+#### Differences by ID
 ```{r}
 changelog_output$diffs_by_id %>% j.reactable()
 ```
@@ -703,14 +705,160 @@ changelog_output$diffs_by_var %>% j.reactable()
 
 :::
 
+## j_dataChk
+
+Borrowed extensively from Frank Harrell's `qreport::dataChk`
+
+This function will check any number of logical expressions to find data errors or outliers. A data table is require. for the function input. The function outputs a summary of the number of checks found that meet the criteria, as well as a detailed data frame of each instance.
+
+### Summary
+```{r}
+
+
+checks <- expression(date1 < ymd("1802-12-31"),
+                      date2 > ymd("1910-01-01"),
+                      date3  > ymd("1912-01-01"),
+                      age > 75 )
+
+B <- j_dataChk(data.table(t3), checks = checks, id= "id")
+
+B$s
+```
+
+### Detail
+
+```{r}
+B$d %>% j.reactable(., groupBy = c("Check"), csv.file = "titanic data checks")
+```
+
+
 ## get_toc
+
+Takes in a rmd (or qmd) file name or path and returns a data frame of the table of contents. When used in conjunction with the `csv.file` argument for `j.reactable`, it allows for a downloadable version of the current documents table of contents. I find this very useful in situations where collaborators want to provide large-scale annotations. 
+
 
 ```{r}
 get_toc("JDmisc.qmd") %>% j.reactable(., csv.file = "JDmisc toc")
 ```
 
+
+### Abbreviated report
+
+The table of contents can also be leveraged to produce truncated reports where sections can be included/ excluded by simply toggling a field in the csv file. 
+
+
+```{r}
+abbr <- read.csv("JDmisc toc.csv")
+
+jgtt(abbr)
+```
+
+The `parsermd` package allows you to access you code in raw form. With some simple data manipulation, the undesired sections can be pruned out of the document. The resulting code can be saved as a different qmd or rmd file. (Note: I had some minor issues with the yaml header with the qmd format, so some minor tweaks are necessary. I have directly compiled an abbreviated report in the past using an rmd file, however.)
+
+```{r}
+parsed <- parsermd::parse_rmd("JDmisc.qmd") %>% as.data.frame() %>%
+  mutate(x = 1*(type=="rmd_heading"), n = cumsum(x)) %>%
+  left_join(., abbr, by =c("n"= "order")) 
+
+j.reactable(parsed, groupBy= c("sec_h1", "sec_h2"))
+
+
+# parsed %>%
+#   filter(include %in% c(NA, "y")) %>%
+#   parsermd::as_document() %>% 
+#   write(., file = "abbr_jdm.qmd")
+```
+
+
 ## session_info
+
+This function takes the name of the current file as its input and returns a formatted table of the different functions used in the report and which packages they come from. It gives the current R version (alongside package = "base"). It's not perfect, as a lot of functions appear across multiple packages (e.g. `%>%` or `mutate`), but it is useful to know which packages needn't be attached to your report. 
+
+Zooming out, one can envision how this type of function can be used to forge a reference for which functions are being routinely used, and in which report a certain function was called.
 
 ```{r}
 session_info("JDmisc.qmd")
 ```
+
+
+```{r}
+#| eval: false
+
+remotes::install_github('couthcommander/datastate', upgrade = 'never')
+library(datastate)
+
+Hmisc::getHdata(titanic3)
+t3 <- titanic3 %>% mutate(cabin = as.character(cabin))
+t3[[1]] <- c('first','second','third')[match(t3[[1]], c('1st','2nd','3rd'))]
+t3 %<>% mutate(survived = as.factor(survived))
+
+dd <- datadict(t3)
+
+myfile2 <- paste0("jd_misc_datastate2", '.yaml')
+dd2yaml(dd, file = myfile2)
+
+dd1 <- makeFactor(dd, t3, 'pclass')
+dd1 <- addRecode(dd1, t3, vars = 'survived')
+myfile <- paste0("jd_misc_datastate", '.yaml')
+dd2yaml(dd1, file = myfile)
+sprintf('make changes to %s', myfile)
+# directly edit file to do something like this
+#dd1$variables[[1]]$factor[[1]]$label_output <- '1st'
+#dd1$variables[[1]]$factor[[2]]$label_output <- '2nd'
+#dd1$variables[[1]]$factor[[3]]$label_output <- '3rd'
+#dd1$variables[[2]]$recode[[1]]$newvalue <- 'dead'
+#dd1$variables[[2]]$recode[[2]]$newvalue <- 'alive'
+#dd1$variables[[10]]$factor <- NULL
+#dd1$variables[[12]]$factor <- NULL
+
+upd <- yaml2dd(myfile)
+out <- mod(upd)
+
+
+collect.labels(out)
+
+j.label5(t3) %>% datapasta::dpasta()
+c("a", "b", "c", "d", "e", "f")
+c("a", "b", "c", "d", "e", "f")
+```
+
+
+```{r}
+require(datapasta)
+j.label6 <- function(df, all = FALSE){
+  
+  prev <- collect.labels(df) %>% mutate(combined = paste0("\t\t", variable, ' = "', label, '"', ',\n'))
+  
+  if(!all) prev %<>% filter(label == "")
+  prev[nrow(prev), "combined"] <- gsub(",\n", ")\n\n",prev[nrow(prev), "combined"])
+  
+  
+  
+  output <- capture.output(cat(deparse(substitute(df)), "<- labelVector::set_label(", deparse(substitute(df)), ",\n",
+      paste0(prev$combined)))
+  
+  # output
+ rstudioapi::insertText(output)
+}
+j.label6(t3, all = TRUE)
+
+
+
+
+t3 <- labelVector::set_label( t3 ,
+ 		pclass = "",
+ 		survived = "",
+ 		name = "Name",
+ 		sex = "",
+ 		age = "Age",
+ 		sibsp = "Number of Siblings/Spouses Aboard",
+ 		parch = "Number of Parents/Children Aboard",
+ 		ticket = "Ticket Number",
+ 		fare = "Passenger Fare",
+ 		cabin = "",
+ 		embarked = "",
+ 		boat = "",
+ 		body = "Body Identification Number",
+ 		home.dest = "Home/Destination")
+```
+

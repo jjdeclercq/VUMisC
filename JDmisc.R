@@ -645,20 +645,30 @@ rca_instrument <- function(rdat, instrument = NA){
     sjlabelled::copy_labels(., rdat)
 }
 
-rca_dictionary <- function(rcon, included.ids, id.var = "record_id"){
+rca_dictionary <- function(rcon, included.ids = del$record_id, id.var = "record_id", repeat.var = NULL){
+  
+  select_missing <- c(repeat.var, "missing")
   
   missing_summary <- missingSummary(rcon) %>% filter(!!sym(id.var) %in% included.ids) %>% 
-    filter(n_missing > 0) %>% select(id.var, redcap_repeat_instance, missing) %>%
+    filter(n_missing > 0) %>% select(id.var, any_of(select_missing)) 
+  
+  if(is.null(repeat.var)) {
+    missing_summary$rv <- NA
+  } else {
+    missing_summary$rv <- missing_summary[,repeat.var]
+  }
+  
+  
+  missing_summary %<>% 
     separate_rows(., "missing", sep = ",") %>%
-    group_by(record_id, missing) %>% summarise(x = ifelse(is.na(redcap_repeat_instance), NA, toString(redcap_repeat_instance))) %>%
+    group_by(record_id, missing) %>%
+    summarise(x =  ifelse(is.na(rv), NA, toString(rv))) %>%
     distinct() %>%
     group_by(missing) %>%
-    dplyr::summarise(n.miss = n(), ids = ifelse(is.na(x), toString(!!sym(id.var)), 
+    dplyr::summarise(n.miss = n(), ids = ifelse(is.na(x), toString(!!sym(id.var)),
                                                 toString(paste0(!!sym(id.var), " (",x,")")))) %>%
-    distinct() %>% rename(field_name = missing) %>% 
+    distinct() %>% rename(field_name = missing) %>%
     mutate(field_name = trimws(field_name, "both"))
-  
-  
   
   rcon$metadata() %>%
     left_join(., missing_summary, by = "field_name") %>%
@@ -688,9 +698,8 @@ rca_dictionary <- function(rcon, included.ids, id.var = "record_id"){
                   }
                   
                 })
-  
-  
 }
+
 
 
 date_dists <- function(dat, included.ids = NULL, id.var = "record_id", n_include = 10, label.src = NULL){

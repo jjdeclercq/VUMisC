@@ -1,0 +1,500 @@
+name: t3
+variables:
+- name: pclass
+  label: ''
+  units: ''
+  factor:
+  - label_output: ''
+    level_input: first
+  - label_output: ''
+    level_input: second
+  - label_output: ''
+    level_input: third
+- name: survived
+  label: Survived
+  units: ''
+  recode:
+  - oldvalue: 0
+    newvalue: 'No'
+  - oldvalue: 1
+    newvalue: 'Yes'
+- name: name
+  label: Name
+  units: ''
+- name: sex
+  label: ''
+  units: ''
+  factor:
+  - label_output: Female
+    level_input: female
+  - label_output: Male
+    level_input: male
+- name: age
+  label: Age
+  units: Year
+- name: sibsp
+  label: Number of Siblings/Spouses Aboard
+  units: ''
+- name: parch
+  label: Number of Parents/Children Aboard
+  units: ''
+- name: ticket
+  label: Ticket Number
+  units: ''
+- name: fare
+  label: Passenger Fare
+  units: British Pound (\243)
+- name: cabin
+  label: ''
+  units: ''
+  factor:
+  - label_output: ''
+    level_input: ''
+  - label_output: A10
+    level_input: A10
+  - label_output: A11
+    level_input: A11
+  - label_output: A14
+    level_input: A14
+  - label_output: A16
+    level_input: A16
+  - label_output: A18
+    level_input: A18
+  - label_output: A19
+    level_input: A19
+  - label_output: A20
+    level_input: A20
+  - label_output: A21
+    level_input: A21
+  - label_output: A23
+    level_input: A23
+  - label_output: A24
+    level_input: A24
+  - label_output: A26
+    level_input: A26
+  - label_output: A29
+    level_input: A29
+  - label_output: A31
+    level_input: A31
+  - label_output: A32
+    level_input: A32
+  - label_output: A34
+    level_input: A34
+  - label_output: A36
+    level_input: A36
+  - label_output: A5
+    level_input: A5
+  - label_output: A6
+    level_input: A6
+  - label_output: A7
+    level_input: A7
+  - label_output: A9
+    level_input: A9
+  - label_output: B10
+    level_input: B10
+  - label_output: B101
+    level_input: B101
+  - label_output: B102
+    level_input: B102
+  - label_output: B11
+    level_input: B11
+  - label_output: B18
+    level_input: B18
+  - label_output: B19
+    level_input: B19
+  - label_output: B20
+    level_input: B20
+  - label_output: B22
+    level_input: B22
+  - label_output: B24
+    level_input: B24
+  - label_output: B26
+    level_input: B26
+  - label_output: B28
+    level_input: B28
+  - label_output: B3
+    level_input: B3
+  - label_output: B30
+    level_input: B30
+  - label_output: B35
+    level_input: B35
+  - label_output: B36
+    level_input: B36
+  - label_output: B37
+    level_input: B37
+  - label_output: B38
+    level_input: B38
+  - label_output: B39
+    level_input: B39
+  - label_output: B4
+    level_input: B4
+  - label_output: B41
+    level_input: B41
+  - label_output: B42
+    level_input: B42
+  - label_output: B45
+    level_input: B45
+  - label_output: B49
+    level_input: B49
+  - label_output: B5
+    level_input: B5
+  - label_output: B50
+    level_input: B50
+  - label_output: B51 B53 B55
+    level_input: B51 B53 B55
+  - label_output: B52 B54 B56
+    level_input: B52 B54 B56
+  - label_output: B57 B59 B63 B66
+    level_input: B57 B59 B63 B66
+  - label_output: B58 B60
+    level_input: B58 B60
+  - label_output: B61
+    level_input: B61
+  - label_output: B69
+    level_input: B69
+  - label_output: B71
+    level_input: B71
+  - label_output: B73
+    level_input: B73
+  - label_output: B77
+    level_input: B77
+  - label_output: B78
+    level_input: B78
+  - label_output: B79
+    level_input: B79
+  - label_output: B80
+    level_input: B80
+  - label_output: B82 B84
+    level_input: B82 B84
+  - label_output: B86
+    level_input: B86
+  - label_output: B94
+    level_input: B94
+  - label_output: B96 B98
+    level_input: B96 B98
+  - label_output: C101
+    level_input: C101
+  - label_output: C103
+    level_input: C103
+  - label_output: C104
+    level_input: C104
+  - label_output: C105
+    level_input: C105
+  - label_output: C106
+    level_input: C106
+  - label_output: C110
+    level_input: C110
+  - label_output: C111
+    level_input: C111
+  - label_output: C116
+    level_input: C116
+  - label_output: C118
+    level_input: C118
+  - label_output: C123
+    level_input: C123
+  - label_output: C124
+    level_input: C124
+  - label_output: C125
+    level_input: C125
+  - label_output: C126
+    level_input: C126
+  - label_output: C128
+    level_input: C128
+  - label_output: C130
+    level_input: C130
+  - label_output: C132
+    level_input: C132
+  - label_output: C148
+    level_input: C148
+  - label_output: C2
+    level_input: C2
+  - label_output: C22 C26
+    level_input: C22 C26
+  - label_output: C23 C25 C27
+    level_input: C23 C25 C27
+  - label_output: C28
+    level_input: C28
+  - label_output: C30
+    level_input: C30
+  - label_output: C31
+    level_input: C31
+  - label_output: C32
+    level_input: C32
+  - label_output: C39
+    level_input: C39
+  - label_output: C45
+    level_input: C45
+  - label_output: C46
+    level_input: C46
+  - label_output: C47
+    level_input: C47
+  - label_output: C49
+    level_input: C49
+  - label_output: C50
+    level_input: C50
+  - label_output: C51
+    level_input: C51
+  - label_output: C52
+    level_input: C52
+  - label_output: C53
+    level_input: C53
+  - label_output: C54
+    level_input: C54
+  - label_output: C55 C57
+    level_input: C55 C57
+  - label_output: C6
+    level_input: C6
+  - label_output: C62 C64
+    level_input: C62 C64
+  - label_output: C65
+    level_input: C65
+  - label_output: C68
+    level_input: C68
+  - label_output: C7
+    level_input: C7
+  - label_output: C70
+    level_input: C70
+  - label_output: C78
+    level_input: C78
+  - label_output: C80
+    level_input: C80
+  - label_output: C82
+    level_input: C82
+  - label_output: C83
+    level_input: C83
+  - label_output: C85
+    level_input: C85
+  - label_output: C86
+    level_input: C86
+  - label_output: C87
+    level_input: C87
+  - label_output: C89
+    level_input: C89
+  - label_output: C90
+    level_input: C90
+  - label_output: C91
+    level_input: C91
+  - label_output: C92
+    level_input: C92
+  - label_output: C93
+    level_input: C93
+  - label_output: C95
+    level_input: C95
+  - label_output: C97
+    level_input: C97
+  - label_output: C99
+    level_input: C99
+  - label_output: D
+    level_input: D
+  - label_output: D10 D12
+    level_input: D10 D12
+  - label_output: D11
+    level_input: D11
+  - label_output: D15
+    level_input: D15
+  - label_output: D17
+    level_input: D17
+  - label_output: D19
+    level_input: D19
+  - label_output: D20
+    level_input: D20
+  - label_output: D21
+    level_input: D21
+  - label_output: D22
+    level_input: D22
+  - label_output: D26
+    level_input: D26
+  - label_output: D28
+    level_input: D28
+  - label_output: D30
+    level_input: D30
+  - label_output: D33
+    level_input: D33
+  - label_output: D34
+    level_input: D34
+  - label_output: D35
+    level_input: D35
+  - label_output: D36
+    level_input: D36
+  - label_output: D37
+    level_input: D37
+  - label_output: D38
+    level_input: D38
+  - label_output: D40
+    level_input: D40
+  - label_output: D43
+    level_input: D43
+  - label_output: D45
+    level_input: D45
+  - label_output: D46
+    level_input: D46
+  - label_output: D47
+    level_input: D47
+  - label_output: D48
+    level_input: D48
+  - label_output: D49
+    level_input: D49
+  - label_output: D50
+    level_input: D50
+  - label_output: D56
+    level_input: D56
+  - label_output: D6
+    level_input: D6
+  - label_output: D7
+    level_input: D7
+  - label_output: D9
+    level_input: D9
+  - label_output: E10
+    level_input: E10
+  - label_output: E101
+    level_input: E101
+  - label_output: E12
+    level_input: E12
+  - label_output: E121
+    level_input: E121
+  - label_output: E17
+    level_input: E17
+  - label_output: E24
+    level_input: E24
+  - label_output: E25
+    level_input: E25
+  - label_output: E31
+    level_input: E31
+  - label_output: E33
+    level_input: E33
+  - label_output: E34
+    level_input: E34
+  - label_output: E36
+    level_input: E36
+  - label_output: E38
+    level_input: E38
+  - label_output: E39 E41
+    level_input: E39 E41
+  - label_output: E40
+    level_input: E40
+  - label_output: E44
+    level_input: E44
+  - label_output: E45
+    level_input: E45
+  - label_output: E46
+    level_input: E46
+  - label_output: E49
+    level_input: E49
+  - label_output: E50
+    level_input: E50
+  - label_output: E52
+    level_input: E52
+  - label_output: E58
+    level_input: E58
+  - label_output: E60
+    level_input: E60
+  - label_output: E63
+    level_input: E63
+  - label_output: E67
+    level_input: E67
+  - label_output: E68
+    level_input: E68
+  - label_output: E77
+    level_input: E77
+  - label_output: E8
+    level_input: E8
+  - label_output: F
+    level_input: F
+  - label_output: F E46
+    level_input: F E46
+  - label_output: F E57
+    level_input: F E57
+  - label_output: F E69
+    level_input: F E69
+  - label_output: F G63
+    level_input: F G63
+  - label_output: F G73
+    level_input: F G73
+  - label_output: F2
+    level_input: F2
+  - label_output: F33
+    level_input: F33
+  - label_output: F38
+    level_input: F38
+  - label_output: F4
+    level_input: F4
+  - label_output: G6
+    level_input: G6
+  - label_output: T
+    level_input: T
+- name: embarked
+  label: 'Port of embarcation'
+  units: ''
+  factor:
+  - label_output: Cherbourg
+    level_input: Cherbourg
+  - label_output: Queenstown
+    level_input: Queenstown
+  - label_output: Southampton
+    level_input: Southampton
+- name: boat
+  label: ''
+  units: ''
+  factor:
+  - label_output: ''
+    level_input: ''
+  - label_output: '1'
+    level_input: '1'
+  - label_output: '10'
+    level_input: '10'
+  - label_output: '11'
+    level_input: '11'
+  - label_output: '12'
+    level_input: '12'
+  - label_output: '13'
+    level_input: '13'
+  - label_output: 13 15
+    level_input: 13 15
+  - label_output: 13 15 B
+    level_input: 13 15 B
+  - label_output: '14'
+    level_input: '14'
+  - label_output: '15'
+    level_input: '15'
+  - label_output: 15 16
+    level_input: 15 16
+  - label_output: '16'
+    level_input: '16'
+  - label_output: '2'
+    level_input: '2'
+  - label_output: '3'
+    level_input: '3'
+  - label_output: '4'
+    level_input: '4'
+  - label_output: '5'
+    level_input: '5'
+  - label_output: 5 7
+    level_input: 5 7
+  - label_output: 5 9
+    level_input: 5 9
+  - label_output: '6'
+    level_input: '6'
+  - label_output: '7'
+    level_input: '7'
+  - label_output: '8'
+    level_input: '8'
+  - label_output: 8 10
+    level_input: 8 10
+  - label_output: '9'
+    level_input: '9'
+  - label_output: A
+    level_input: A
+  - label_output: B
+    level_input: B
+  - label_output: C
+    level_input: C
+  - label_output: C D
+    level_input: C D
+  - label_output: D
+    level_input: D
+- name: body
+  label: Body Identification Number
+  units: ''
+- name: home.dest
+  label: Home/Destination
+  units: ''

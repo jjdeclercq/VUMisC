@@ -1,0 +1,329 @@
+---
+title: JDMisc functions
+author:
+- Josh DeClercq
+- Department of Biostatistics
+- Vanderbilt University Medical Center
+date: today
+format:
+  html:
+    grid:
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: '#F5F5F5'
+code-fold: show
+code-block-bg: '#F5F5F5'
+code-block-border-left: '#BADBCB'
+callout-appearance: minimal
+self-contained: true
+fig-align: center
+---
+
+```{r}
+#| include: false
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(reshape2)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(ggfortify)
+require(stringr)
+require(forcats)
+require(labelVector)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+require(keyring)
+require(redcapAPI)
+require(readxl)
+require(arsenal)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/checkbox/R/checkbox_funs.R")
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
+
+select <- dplyr::select
+
+```
+
+# Objective
+
+## Background
+
+Throughout my time as a biostatistician in the department, I've developed a handful of convenience functions. I think they're useful in my day-to-day work, and I think they can be useful for others. However, I usually write code in a way that's easy for me to understand, but my style unlikely follows best-practice guidelines, and there is potentially a lot of issues that may arise. This document will show the ideal use cases for these functions.
+
+
+## Goals
+
+The goal of this document is to showcase some of this work, and to use it as a springboard into the development of a collaborative R package, wherein all members of the VUMC Department of Biostatistics can contribute functions to a central repository. Sharing code amongst the department should conceivably increase our individual coding skills as well as productivity.
+
+This work is hosted on my [Github](https://github.com/jjdeclercq/VUMisC), but I would eagerly transfer ownership rights to anyone who is willing. (My git knowledge is quite limited at the moment.)
+
+
+## Data
+
+This report uses the `titanic3` data. This report isn't intended to be a description of the best way to analyze this data.
+
+
+```{r}
+# Retreive data
+getHdata(titanic3)
+
+t3 <- titanic3 %>% 
+  select(-c( boat:home.dest, ticket)) %>%  
+  mutate(id = 1:n()) ## Create a unique ID variable for each row
+
+archive(t3) ## this will be discussed later, but essentially this takes an impression of the current data for later use
+
+# Data cleaning/ Create new variables
+t3 %<>% mutate(cabin = as.character(cabin), cabin = ifelse(cabin == "", NA, cabin))
+t3 %<>% mutate(s.cat = yesno(survived == 1))
+t3 %<>% mutate(missing.age = yesno(is.na(age)))
+```
+
+# Labels
+
+## Clear labels
+
+```{r}
+t3 %<>% clear.labels()
+```
+
+## Adding labels
+
+`j.label5()` is code that outputs text suitable for pasting into your markdown document.
+
+
+```{r}
+#| code-fold: show
+j.label5(t3)
+```
+
+Labels can then be filled in by hand.
+
+
+```{r}
+t3 <- labelVector::set_label( t3 ,
+                 name = "Passenger name",
+ 		             pclass = 'Passenger class',
+                 survived = 'Survived',
+                 sex = 'Sex',
+                 age = 'Age',
+                 sibsp = 'Number of Siblings/Spouses Aboard',
+                 parch = 'Number of Parents/Children Aboard',
+                 fare = 'Passenger Fare',
+                 embarked = 'Port of Embarkation', 
+                 cabin = "Cabin")
+```
+
+Subsequent execution of the code will have the added labels incorporated. Toggling the `all` argument determines whether all variables will be displayed or just those without labels
+
+
+```{r}
+#| code-fold: show
+j.label5(t3, all = TRUE)
+j.label5(t3, all = FALSE)
+```
+
+```{r}
+t3 <- labelVector::set_label( t3 ,
+ 		s.cat = "Survived",
+ 		missing.age = "Missing age")
+```
+
+## Collect labels
+
+Create a data frame of variable names and the corresponding label.
+
+
+```{r}
+collect.labels(t3)
+```
+
+## Removing labels
+
+Sometimes labelled data can present challenges as shown by the example below:
+
+
+```{r}
+#| eval: false
+t3 %>% select(name, age, sibsp) %>% 
+  pivot_longer(., -1, names_to = "var")
+
+```
+
+```         
+Error in `pivot_longer()`:
+! Can't combine `age` <labelled> and `sibsp` <labelled>.
+✖ Some attributes are incompatible.
+ℹ The author of the class should implement vctrs methods.
+ℹ See <https://vctrs.r-lib.org/reference/faq-error-incompatible-attributes.html>.
+Backtrace:
+ 1. t3 %>% select(name, age, sibsp) %>% ...
+ 3. tidyr:::pivot_longer.data.frame(., -1, names_to = "var")
+```
+
+`clear.labels`
+
+I did not write this function ([stackoverflow](https://stackoverflow.com/questions/2394902/remove-variable-labels-attached-with-foreign-hmisc-spss-import-functions)) but I find it immensely helpful in removing all labels from a data frame.
+
+
+```{r}
+t3.labelled <- t3 ## create a second data frame for regaining labels later
+t3 <- clear.labels(t3)
+
+
+t3 %>% select(name, age, sibsp) %>% pivot_longer(., -1, names_to = "var") %>% head()
+```
+
+## Adding labels back
+
+Not my function, but I find this to be very helpful.
+
+
+```{r}
+t3 <- sjlabelled::copy_labels(t3, t3.labelled)
+```
+
+`clear.label.class()` is a nice workaround for labelled data. It just removes the class "label" from the variable, but still retains the utility of labelled data.
+
+
+```{r}
+t3 <- clear.label.class(t3)
+
+```
+
+## Clearing empty columns
+
+Sometimes there are columns in the data that don't carry any information. `remove.blank.columns2()` will remove all columns from the data that are either all `NA` or all empty characters (`""`).
+
+
+```{r}
+t3 %<>% mutate(x = "", y = NA, z= as.Date(NA))
+
+t3 %>% select(x, y, z) %>% head(10)
+t3 %<>% remove.blank.columns2()
+```
+
+```{r}
+names(t3)
+```
+
+# Factors
+
+## label_factor
+
+Produces code that can be pasted into your report for adding in variable labels:
+
+
+```{r}
+label_factor(t3, "sex")
+
+```
+
+Can accommodate any number of factor variables:
+
+
+```{r}
+t3 %>% select(where(is.factor)) %>% 
+  names() %>% 
+  label_factor(t3, .)
+```
+
+## recode_factor
+
+Produce editable code using `forcats::fct_recode()`
+
+
+```{r}
+recode_factor(t3, "embarked")
+
+```
+
+## j.trib
+
+Create an editable `tribble` table that can be joined back into original data frame.
+
+
+```{r}
+j.trib(t3, "embarked")
+```
+
+```{r}
+trib.t3<- tribble(~embarked, ~replace,
+              'Cherbourg', '',
+              'Queenstown', '',
+              'Southampton', '',
+              'NA', '')    
+```
+
+# Tables
+
+## jgt
+
+The package `gtsummary` provides a lot of great functions for summarizing data. The `jgt()` is a wrapper for `tbl_summary` that handles 99% of summary tables that I need to make.
+
+
+```{r}
+t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
+  jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)
+```
+
+## jgtt
+
+Simply prints the data using the `gt` package, and stylized to match `jgt` output.
+
+
+```{r}
+t3  %>% select(name, age, sex, pclass) %>% head(20) %>% jgtt()
+```
+
+## j.reactable
+
+Better at presenting lots of data: tabbed output, searchable text, filtering and embedding data as a csv file are available. The `reactable` package provides a ton a great functionality. `j.reactable` is a convenient wrapper that suits the majority of table needs.
+
+
+```{r}
+t3  %>% select(name, age, sex, pclass) %>% 
+  j.reactable(., csv.file = "titanic")
+```
+
+# Appendix
+
+## get_toc
+
+Takes in a rmd (or qmd) file name or path and returns a data frame of the table of contents. When used in conjunction with the `csv.file` argument for `j.reactable`, it allows for a downloadable version of the current documents table of contents. I find this very useful in situations where collaborators want to provide large-scale annotations. 
+
+
+
+```{r}
+get_toc("abbr_jdm.qmd") %>% j.reactable(., csv.file = "JDmisc abbr toc")
+```
+
+## session_info
+
+```{r}
+session_info("abbr_jdm.qmd")
+```
+

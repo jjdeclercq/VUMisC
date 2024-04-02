@@ -1,5 +1,5 @@
 #' ---
-#' title: "JDMisc functions"
+#' title: "[JDMisc functions](https://github.com/jjdeclercq/VUMisC)"
 #' author:
 #' - Josh DeClercq
 #' - Department of Biostatistics
@@ -55,6 +55,8 @@ require(htmltools)
 require(keyring)
 require(redcapAPI)
 require(readxl)
+require(arsenal)
+require(data.table)
 
 
 devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/Jmisc/main/Jmisc.R")
@@ -155,9 +157,9 @@ collect.labels(t3)
 #' Sometimes labelled data can present challenges as shown by the example below:
 #' 
 #| eval: false
-## t3 %>% select(name, age, sibsp) %>%
-##   pivot_longer(., -1, names_to = "var")
-## 
+t3 %>% select(name, age, sibsp) %>% 
+  pivot_longer(., -1, names_to = "var")
+
 
 #' 
 #' ```         
@@ -497,7 +499,6 @@ t3_int <- expand.int(seq(10, 70, 10), c("male", "female"), "age", "sex", t3.mod.
 
 head(t3_int)
 
-get.contrast.fun
 
 #' 
 #' ### int.react
@@ -520,83 +521,246 @@ int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
 #' 
 #' ## archive and changelog
 #' 
+#' These functions are in development still require some fine tuning to get the desired result. The two functions have complementary purpose:
+#' 
+#' `archive` creates a copy of the inputted data and saves it to an archive directory within your working directory. If it's your first time running `archive` from within the directory, a new folder will be created. If the data are unchanged from the last `archive` call, the data will not be re-saved and the user will be alerted. In addition to creating a time stamped copy of the data, a summary of all archives will be logged and updated. A helper function `retrieve_archive` can be used to access the stored summary file. 
+#' 
+#' Once archived data exists, `changelog2` will make comparisons across all consecutive archived versions of the data, e.g. 2 vs 1, 3 vs 2, etc. This relies heavily on `arsenal::comparedf()`. If there is only one archived data set or all comparisons have already been run, no new comparisons will be run. The function returns a message to the user with which action has been taken, and if necessitated by changes to the archive, will save a summary of changes from one version of the data to the next. 
+#' 
+#' The following example steps through the use of the functions with the expected output. Note: `changelog` was run at the very beginning on t3 data.
+#' 
+#' ### Example usage
+#' ```
+#' [1] "Archive directory created at /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3"
+#' ```
+#' 
 #| eval: false
 
-## 
-##     load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-##     ad0 <- archive_details # expected 1 row - yes
-## 
-## changelog2(t3, "id") ## expected no action - yes
-## archive(t3) ## expected save new data - yes
-## archive(t3) ## expect no action- yes
-## 
-##     load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-##     ad <- archive_details # expected 2 row - yes
-## 
-## changelog2(t3, "id")  ##expect new log - yes
-## 
-##     load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-##     ad2 <- archive_details# expected 2 row - yes
-## 
-## archive(t3) ## expect no action - yes
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## ad3 <- archive_details # expected 2 row - yes
-## 
-## 
-## t3 %<>% mutate(z = 11, w = 12)
-## Sys.sleep(1)
-## changelog2(t3, "id") ## expected no action - yes
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## ad4 <- archive_details ##expected 2 rows - yes
-## 
-## 
-## archive(t3) ## expect new save - yes
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## ad5 <- archive_details # expect 3 rows - yes
-## 
-## changelog2(t3, "id") # expect new log  - yes
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## ad6 <- archive_details # expect 3 rows - yes
-## 
-## 
-## archive(t3) ## expect no action - yes
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## ad7 <- archive_details # expect 3 rows - ys
-## 
-## 
-## changelog2(t3, "id")
-## t3 %<>% mutate(z = NULL, a = "b")
-## Sys.sleep(1)
-## changelog2(t3, "id")
-## archive(t3)
-## archive(t3)
-## t3 %<>% mutate(y = 122, w = 293, z = 111, a = "w")
-## Sys.sleep(1)
-## changelog2(t3, "id")
-## archive(t3)
-## 
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/archive_summary_t3.rda")
-## # ad <- archive_details
-## archive_details; ad
-## 
-## ## For LATER -- why is changelog impacting archive???
-## 
-## load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
-## changelog_output$diffs_by_var
+changelog2(t3, "id") ## expected no action - yes
 
 #' 
+#' ```
+#' [1] "No comparisons needed"
+#' ```
+#' 
+#| eval: false
+archive(t3) ## expected save new data - yes
+
+#' 
+#' ```
+#' [1] "New copy of data saved"
+#' ```
+#' 
+#| eval: false
+ad0 <- retrieve_archive("t3") # expected 2 row - yes
+
+changelog2(t3, "id") ## expected new comparison - yes
+
+
+#' 
+#' 
+#' 
+#' ```
+#' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+#' ```
+#' 
+#| eval: false
+archive(t3) ## expect no action- yes
+
+#' 
+#' ```
+#' [1] "No changes made to data"
+#' ```
+#' 
+#| eval: false
+ad <- retrieve_archive("t3") # expected 2 rows - yes
+changelog2(t3, "id")  ##expect no action - yes
+
+#' 
+#' ```
+#' [1] "No comparisons needed"
+#' ```
+#' 
+#' 
+#| eval: false
+t3 %<>% mutate(z = 12, w = 11)
+archive(t3) ## expect new archive- yes
+
+    ad2 <- retrieve_archive("t3")# expected 3 row - yes
+
+#' 
+#' ```
+#' [1] "New copy of data saved"
+#' ```
+#' 
+#| eval: false
+archive(t3) ## expect no action - yes
+
+#' ```
+#' [1] "No changes made to data"
+#' ```
+#' 
+#| eval: false
+changelog2(t3, "id") ## expect updates to logs - yes
+
+#' 
+#' ```
+#' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+#' ```
+#' 
+#' 
+#| eval: false
+ad4 <- retrieve_archive("t3") ##expected 3 rows - yes
+
+
+#' 
+#' 
+#| eval: false
+t3 %<>% mutate(ff = 23)
+changelog2(t3, "id") # expect no action
+archive(t3) ## expect new archive
+changelog2(t3, "id") # expect new log
+archive(t3) ## expect no action - yes
+ad6 <- retrieve_archive("t3") # expect 4 rows - yes
+
+#' ```
+#' [1] "No comparisons needed"
+#' [1] "New copy of data saved"
+#' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+#' [1] "No changes made to data"
+#' 
+#' ```
+#' 
+#| eval: false
+t3 %<>% mutate(z = NULL, a = "b")
+Sys.sleep(1)
+changelog2(t3, "id")
+archive(t3)
+archive(t3)
+t3 %<>% mutate(y = 122, w = 293, z = 111, a = "w")
+Sys.sleep(1)
+changelog2(t3, "id")
+archive(t3)
+changelog2(t3, "id")
+
+ad7 <- retrieve_archive("t3") # expect 6 rows - yes
+
+#' ```
+#' [1] "No comparisons needed"
+#' [1] "New copy of data saved"
+#' [1] "No changes made to data"
+#' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+#' [1] "New copy of data saved"
+#' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
+#' ```
+#' 
+#' ### Archive summary
+
+retrieve_archive("t3") %>% j.reactable()
+
+#' 
+#' 
+#' ### Changelog output
+#' ::: panel-tabset
+
+load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
+
+#' 
+#' #### Summary comparison
+
+changelog_output$summary_comp_table %>% 
+  pivot_wider(., names_from = "comparison", values_from = "value") %>% 
+  j.reactable()
+
+#' 
+#' #### Differences by ID
+
+changelog_output$diffs_by_id %>% j.reactable()
+
+#' 
+#' #### Variables not shared
+#' 
+
+changelog_output$vars_not_shared %>% j.reactable()
+
+#' 
+#' #### Differences by variable
+
+changelog_output$diffs_by_var %>% j.reactable()
+
+#' 
+#' :::
+#' 
+#' ## j_dataChk
+#' 
+#' Borrowed extensively from Frank Harrell's `qreport::dataChk`
+#' 
+#' This function will check any number of logical expressions to find data errors or outliers. A data table is require. for the function input. The function outputs a summary of the number of checks found that meet the criteria, as well as a detailed data frame of each instance.
+#' 
+#' ### Summary
+
+
+
+checks <- expression(date1 < ymd("1802-12-31"),
+                      date2 > ymd("1910-01-01"),
+                      date3  > ymd("1912-01-01"),
+                      age > 75 )
+
+B <- j_dataChk(data.table(t3), checks = checks, id= "id")
+
+B$s
+
+#' 
+#' ### Detail
+#' 
+
+B$d %>% j.reactable(., groupBy = c("Check"), csv.file = "titanic data checks")
+
+#' 
+#' 
 #' ## get_toc
+#' 
+#' Takes in a rmd (or qmd) file name or path and returns a data frame of the table of contents. When used in conjunction with the `csv.file` argument for `j.reactable`, it allows for a downloadable version of the current documents table of contents. I find this very useful in situations where collaborators want to provide large-scale annotations. 
+#' 
 #' 
 
 get_toc("JDmisc.qmd") %>% j.reactable(., csv.file = "JDmisc toc")
 
 #' 
+#' 
+#' ### Abbreviated report
+#' 
+#' The table of contents can also be leveraged to produce truncated reports where sections can be included/ excluded by simply toggling a field in the csv file. 
+#' 
+#' 
+
+abbr <- read.csv("JDmisc toc.csv")
+
+jgtt(abbr)
+
+#' 
+#' The `parsermd` package allows you to access you code in raw form. With some simple data manipulation, the undesired sections can be pruned out of the document. The resulting code can be saved as a different qmd or rmd file. (Note: I had some minor issues with the yaml header with the qmd format, so some minor tweaks are necessary. I have directly compiled an abbreviated report in the past using an rmd file, however.)
+#' 
+
+parsed <- parsermd::parse_rmd("JDmisc.qmd") %>% as.data.frame() %>%
+  mutate(x = 1*(type=="rmd_heading"), n = cumsum(x)) %>%
+  left_join(., abbr, by =c("n"= "order")) 
+
+j.reactable(parsed, groupBy= c("sec_h1", "sec_h2"))
+
+
+# parsed %>%
+#   filter(include %in% c(NA, "y")) %>%
+#   parsermd::as_document() %>% 
+#   write(., file = "abbr_jdm.qmd")
+
+#' 
+#' 
 #' ## session_info
+#' 
+#' This function takes the name of the current file as its input and returns a formatted table of the different functions used in the report and which packages they come from. It gives the current R version (alongside package = "base"). It's not perfect, as a lot of functions appear across multiple packages (e.g. `%>%` or `mutate`), but it is useful to know which packages needn't be attached to your report. 
+#' 
+#' Zooming out, one can envision how this type of function can be used to forge a reference for which functions are being routinely used, and in which report a certain function was called.
 #' 
 
 session_info("JDmisc.qmd")

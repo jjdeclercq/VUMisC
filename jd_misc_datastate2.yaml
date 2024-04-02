@@ -1,0 +1,118 @@
+name: t3
+variables:
+- name: pclass
+  label: ''
+  units: ''
+- name: survived
+  label: ''
+  units: ''
+  factor:
+  - label_output: '0'
+    level_input: '0'
+  - label_output: '1'
+    level_input: '1'
+- name: name
+  label: Name
+  units: ''
+- name: sex
+  label: ''
+  units: ''
+  factor:
+  - label_output: female
+    level_input: female
+  - label_output: male
+    level_input: male
+- name: age
+  label: Age
+  units: Year
+- name: sibsp
+  label: Number of Siblings/Spouses Aboard
+  units: ''
+- name: parch
+  label: Number of Parents/Children Aboard
+  units: ''
+- name: ticket
+  label: Ticket Number
+  units: ''
+- name: fare
+  label: Passenger Fare
+  units: British Pound (\243)
+- name: cabin
+  label: ''
+  units: ''
+- name: embarked
+  label: ''
+  units: ''
+  factor:
+  - label_output: Cherbourg
+    level_input: Cherbourg
+  - label_output: Queenstown
+    level_input: Queenstown
+  - label_output: Southampton
+    level_input: Southampton
+- name: boat
+  label: ''
+  units: ''
+  factor:
+  - label_output: ''
+    level_input: ''
+  - label_output: '1'
+    level_input: '1'
+  - label_output: '10'
+    level_input: '10'
+  - label_output: '11'
+    level_input: '11'
+  - label_output: '12'
+    level_input: '12'
+  - label_output: '13'
+    level_input: '13'
+  - label_output: 13 15
+    level_input: 13 15
+  - label_output: 13 15 B
+    level_input: 13 15 B
+  - label_output: '14'
+    level_input: '14'
+  - label_output: '15'
+    level_input: '15'
+  - label_output: 15 16
+    level_input: 15 16
+  - label_output: '16'
+    level_input: '16'
+  - label_output: '2'
+    level_input: '2'
+  - label_output: '3'
+    level_input: '3'
+  - label_output: '4'
+    level_input: '4'
+  - label_output: '5'
+    level_input: '5'
+  - label_output: 5 7
+    level_input: 5 7
+  - label_output: 5 9
+    level_input: 5 9
+  - label_output: '6'
+    level_input: '6'
+  - label_output: '7'
+    level_input: '7'
+  - label_output: '8'
+    level_input: '8'
+  - label_output: 8 10
+    level_input: 8 10
+  - label_output: '9'
+    level_input: '9'
+  - label_output: A
+    level_input: A
+  - label_output: B
+    level_input: B
+  - label_output: C
+    level_input: C
+  - label_output: C D
+    level_input: C D
+  - label_output: D
+    level_input: D
+- name: body
+  label: Body Identification Number
+  units: ''
+- name: home.dest
+  label: Home/Destination
+  units: ''
