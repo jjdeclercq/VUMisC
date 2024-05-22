@@ -71,6 +71,22 @@ j.label5 <- function(df, all = FALSE){
       paste0(prev$combined))
 }
 
+j.label6 <- function(df, all = FALSE){
+  
+  prev <- collect.labels(df) %>% mutate(combined = paste0("\t\t", variable, ' = "', label, '"', ',\n'))
+  
+  if(!all) prev %<>% filter(label == "")
+  prev[nrow(prev), "combined"] <- gsub(",\n", ")\n\n",prev[nrow(prev), "combined"])
+  
+  
+  
+  output <- capture.output(cat(deparse(substitute(df)), "<- labelVector::set_label(", deparse(substitute(df)), ",\n",
+                               paste0(prev$combined)))
+  
+  # output
+  rstudioapi::insertText(output)
+}
+
 
 ### Store labels in new dataframe ###
 collect.labels <- function(x){
@@ -937,3 +953,40 @@ j_dataChk <- function (d, checks, id, summary = TRUE)
   
   return(list(s = s, d = Dat))
 }
+
+
+## Recategorize binary variables for single line summaries
+recat <- function(dat, omit.vars= NULL){
+  
+  cat2 <- dat %>% 
+    mutate(across(where(is.character), as.factor)) %>% 
+    summarise(across(names(.), ~n_distinct(.x, na.rm = TRUE), .names = "{col};n"),
+              across(names(.), ~levels(.x)[1], .names = "{col};l1"),
+              across(names(.), ~levels(.x)[2], .names = "{col};l2"),
+              across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
+              across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>% 
+    mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>% 
+    filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(oa), by = "variable") %>%
+    mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
+                         l2 %in% c("Yes","yes" ) ~ l2,
+                         f1>=f2 ~ l1, 
+                         TRUE ~ l2)) %>% 
+    mutate(label = ifelse(is.na(label), variable, label)) %>% 
+    mutate(new_label = paste0(label, ": ", l)) %>% 
+    filter(variable %nin% omit.vars)
+  
+  lp <- cat2$variable
+  names(lp) <- cat2$new_label
+  
+  for(i in 1:nrow(cat2)){
+    
+    dat[,cat2$variable[i]] <- dat[,cat2$variable[i]] == cat2$l[i]
+    
+  }
+  
+  # relabel variables
+  dat %<>% rename(any_of(lp)) 
+  
+  return(dat)
+}
+
