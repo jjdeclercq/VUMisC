@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-06-04T17:37:19.411Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="zshagxrZgksEyk6UL-zu" version="24.4.4" type="github">
+<mxfile host="app.diagrams.net" modified="2024-06-04T17:45:57.886Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="qFrKDTP1GZYtwfbHHM0q" version="24.4.4" type="github">
   <diagram id="HfjM1wZW--X67TTqQhMb" name="Page-1">
     <mxGraphModel dx="933" dy="660" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -72,46 +72,16 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-5" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="308" y="750" width="230" height="90" as="geometry" />
+          <mxGeometry x="10" y="810" width="230" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-6" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Placebo Fostamatinib&lt;br&gt;&lt;b&gt;201&lt;/b&gt;&lt;br&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="428" y="770" width="100" height="50" as="geometry" />
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-6" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Placebo&lt;/font&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;TXA-127&lt;/span&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="830" width="100" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-7" value="Fostamatinib Trial Analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="348" y="820" width="150" height="20" as="geometry" />
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-7" value="TXA-127 Trial Analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="880" width="150" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-8" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Active Fostamatinib&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;b&gt;199&lt;/b&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" vertex="1" parent="1">
-          <mxGeometry x="318" y="770" width="100" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-9" value="&lt;font style=&quot;&quot;&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;mITT Exclusions&lt;/span&gt;&lt;sup style=&quot;&quot;&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;e&lt;/font&gt;&lt;/sup&gt;&lt;br&gt;&lt;b style=&quot;font-size: 12px;&quot;&gt;8&lt;/b&gt;&lt;br&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="138" y="750" width="100" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-10" value="&lt;font style=&quot;&quot;&gt;&lt;span style=&quot;font-size: 12px;&quot;&gt;mITT Exclusions&lt;/span&gt;&lt;sup style=&quot;border-color: var(--border-color);&quot;&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;e&lt;/font&gt;&lt;/sup&gt;&lt;br&gt;&lt;b style=&quot;font-size: 12px;&quot;&gt;5&lt;/b&gt;&lt;br&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="613" y="750" width="100" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-11" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="563" y="764.5" as="sourcePoint" />
-            <mxPoint x="613" y="764.5" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-12" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="283" y="764.5" as="sourcePoint" />
-            <mxPoint x="238" y="764.5" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-13" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="283" y="790" as="sourcePoint" />
-            <mxPoint x="308" y="790" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-14" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="563" y="790" as="sourcePoint" />
-            <mxPoint x="538" y="790" as="targetPoint" />
-          </mxGeometry>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-8" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Active&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;TXA-127&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="830" width="100" height="50" as="geometry" />
         </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-15" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Placebo&lt;br&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="510" y="440" width="100" height="50" as="geometry" />
@@ -161,11 +131,35 @@
         <mxCell id="yUjiA-JmrCVDI_Teasnt-98" value="mITT&lt;div&gt;Exclusions&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="320" y="680" width="80" height="40" as="geometry" />
         </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-149" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-99" target="yUjiA-JmrCVDI_Teasnt-134">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="780" />
+              <mxPoint x="433" y="780" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-99" value="2" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="510" y="690" width="100" height="20" as="geometry" />
         </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-153" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-100" target="yUjiA-JmrCVDI_Teasnt-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="760" />
+              <mxPoint x="183" y="760" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-100" value="2" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="410" y="690" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-147" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-101" target="yUjiA-JmrCVDI_Teasnt-138">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="740" />
+              <mxPoint x="718" y="740" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-101" value="5" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="610" y="690" width="100" height="20" as="geometry" />
@@ -215,13 +209,32 @@
             <mxPoint x="159.5" y="690" as="targetPoint" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-152" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-113" target="yUjiA-JmrCVDI_Teasnt-134">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="780" />
+              <mxPoint x="318" y="780" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-113" value="2" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="110" y="690" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-154" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.287;entryY=0.011;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-114" target="yUjiA-JmrCVDI_Teasnt-5">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-114" value="2" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="10" y="690" width="100" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="yUjiA-JmrCVDI_Teasnt-115" value="5" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-142" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="yUjiA-JmrCVDI_Teasnt-115" target="yUjiA-JmrCVDI_Teasnt-138">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="740" />
+              <mxPoint x="610" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-115" value="8" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="210" y="690" width="100" height="20" as="geometry" />
         </mxCell>
         <mxCell id="yUjiA-JmrCVDI_Teasnt-116" value="Shared placebo eligibility" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -280,6 +293,30 @@
             <mxPoint x="659.5" y="660" as="sourcePoint" />
             <mxPoint x="659.5" y="690" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-134" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="810" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-135" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Placebo&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;TRV-027&lt;br&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="830" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-136" value="TRV-027&lt;span style=&quot;background-color: initial;&quot;&gt;&amp;nbsp;Trial Analysis&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="880" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-137" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Active&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;TRV-027&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="830" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-138" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="545" y="810" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-139" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Placebo Fostamatinib&lt;br&gt;&lt;b&gt;201&lt;/b&gt;&lt;br&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="665" y="830" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-140" value="Fostamatinib Trial Analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="585" y="880" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="yUjiA-JmrCVDI_Teasnt-141" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Active Fostamatinib&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;b&gt;199&lt;/b&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="555" y="830" width="100" height="50" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
