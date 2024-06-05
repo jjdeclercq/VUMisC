@@ -171,6 +171,29 @@ my_theme <-list(
 )
 gtsummary::set_gtsummary_theme(my_theme)
 
+my_theme2 <-list(
+  "tbl_summary-str:default_con_type" = "continuous2",
+  "tbl_summary-str:continuous_stat" = c("{median} ({p25} - {p75})"),
+  "tbl_summary-str:categorical_stat" = c("{n} ({p})"),
+  "style_number-arg:big.mark" = "",
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 0),
+  "as_gt-lst:addl_cmds" = list(
+    tab_spanner = rlang::expr(gt::tab_options(table.font.size = 'small')),
+    user_added1 = rlang::expr(gt::opt_row_striping()),
+    user_added2 = rlang::expr(gt::opt_table_lines("default")),
+    user_added3 = rlang::expr(gt::tab_options(table_body.hlines.color = "white",
+                                              row.striping.background_color = "#fafafa",
+                                              source_notes.font.size = 12,
+                                              table.font.size = 12,
+                                              # table.width = px(700),
+                                              heading.align = "left",
+                                              heading.title.font.size = 16,
+                                              table.border.top.color = "transparent",
+                                              table.border.top.width = px(3),
+                                              data_row.padding = px(4)))
+  )
+)
+
 
 
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
@@ -229,6 +252,124 @@ jgtt <- function(dat, col.names = TRUE){
 }
 
 
+
+# recat <- function(dat, omit.vars = ""){
+#   
+#   cat2 <-  dat %>% select(-any_of(omit.vars)) %>% 
+#     mutate(across(where(is.character), as.factor)) %>% 
+#     summarise(across(names(.), ~n_distinct(.x, na.rm = TRUE), .names = "{col};n"),
+#               across(names(.), ~levels(.x)[1], .names = "{col};l1"),
+#               across(names(.), ~levels(.x)[2], .names = "{col};l2"),
+#               across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
+#               across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>% 
+#     mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>% 
+#     filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(dat), by = "variable") %>%
+#     mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
+#                          l2 %in% c("Yes","yes" ) ~ l2,
+#                          f1>=f2 ~ l1, 
+#                          TRUE ~ l2)) %>% 
+#     mutate(label = ifelse(is.na(label), variable, label)) %>% 
+#     mutate(new_label = paste0(label, ": ", l)) 
+#   
+#   
+#   lp <- cat2$variable
+#   names(lp) <- cat2$new_label
+#   
+#   
+#   dat %>% 
+#     mutate(across(c(where(is.character), -any_of(omit.vars)), as.factor))  %>% 
+#     mutate(across(any_of(cat2$variable), ~.x == levels(.x)[1])) %>% 
+#     rename(any_of(lp)) 
+#   
+# }
+
+## Recategorize binary variables for single line summaries
+recat <- function(dat, omit.vars= NULL){
+  
+  ## Turn binary variables into TRUE/FALSE
+  ## Re-level 'Yes' as the default if not set as a factor
+  ## Re-level to most frequent category if not set as a factor
+  ## Assign new label to variable affixing primary factor level
+  
+  cat2 <- dat %>%
+    mutate(across(where(is.character), as.factor)) %>%
+    summarise(across(names(.), ~n_distinct(.x, na.rm = TRUE), .names = "{col};n"),
+              across(names(.), ~levels(.x)[1], .names = "{col};l1"),
+              across(names(.), ~levels(.x)[2], .names = "{col};l2"),
+              across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
+              across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>%
+    mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>%
+    filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(oa), by = "variable") %>%
+    mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
+                         l2 %in% c("Yes","yes" ) ~ l2,
+                         f1>=f2 ~ l1,
+                         TRUE ~ l2)) %>%
+    mutate(label = ifelse(is.na(label), variable, label)) %>%
+    mutate(new_label = paste0(label, ": ", l)) %>%
+    filter(variable %nin% omit.vars)
+  
+  lp <- cat2$variable
+  names(lp) <- cat2$new_label
+  
+  for(i in 1:nrow(cat2)){
+    
+    dat[,cat2$variable[i]] <- dat[,cat2$variable[i]] == cat2$l[i]
+    
+  }
+  
+  # relabel variables
+  dat %<>% rename(any_of(lp))
+  
+  return(dat)
+}
+
+
+pgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, digit.cont = 0 , digit.cat = c(0,0), 
+                force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
+                add.n = FALSE, percent = "column", stats = "brief",
+                one_row_binary = TRUE, ...){
+  
+  if(stats=="full"){ 
+    statistic <- list(all_continuous() ~ c( "{mean} ({sd})",
+                                            "{median} ({p25} - {p75})",
+                                            "{min} - {max}") )
+  }else{
+    statistic <- list(all_categorical() ~ "{n} ({p})", 
+                      all_continuous() ~ "{median} ({p25} - {p75})" )}
+  
+  
+  {if(!is.null(by)) 
+    spanner.size <- n_distinct(na.omit(dat[,by]))
+    spanner.text <- paste0("**",Hmisc::label(dat[,by]) ,"**")  }
+  sort <- NULL
+  {if(order.cat) sort = all_categorical() ~ "frequency"}
+  
+  if(one_row_binary) {TYPE <- list( all_dichotomous() ~ "dichotomous")} 
+  else{
+    TYPE <-  list( all_dichotomous() ~ "categorical")
+  }
+  if(force.continuous) {TYPE[[2]] <- where(is.numeric) ~ "continuous2"}
+  
+  tab <- dat  %>%
+    tbl_summary(type = TYPE,
+                sort = sort,
+                digits = list(all_categorical() ~ digit.cat,
+                              all_continuous() ~ digit.cont),
+                by = !!by,
+                missing = missing,
+                statistic = statistic,
+                missing_text = missing_text,
+                percent = percent,
+                ...) %>%
+    bold_labels() %>%
+    {if(add.n) add_n(.) else .}  %>% 
+    {if(add.p) add_p(., pvalue_fun = function(x) style_pvalue(x, digits = 3)) else .}  %>% 
+    {if(overall) add_overall(., last = TRUE) else .}
+  
+  if(!is.null(by)) tab %<>%  modify_spanning_header(c(paste0("stat_", 1:spanner.size)) ~ spanner.text)
+  
+  return(tab)
+}
 
 
 ### Interaction plot
@@ -955,38 +1096,5 @@ j_dataChk <- function (d, checks, id, summary = TRUE)
 }
 
 
-## Recategorize binary variables for single line summaries
-recat <- function(dat, omit.vars= NULL){
-  
-  cat2 <- dat %>% 
-    mutate(across(where(is.character), as.factor)) %>% 
-    summarise(across(names(.), ~n_distinct(.x, na.rm = TRUE), .names = "{col};n"),
-              across(names(.), ~levels(.x)[1], .names = "{col};l1"),
-              across(names(.), ~levels(.x)[2], .names = "{col};l2"),
-              across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
-              across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>% 
-    mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>% 
-    filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(oa), by = "variable") %>%
-    mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
-                         l2 %in% c("Yes","yes" ) ~ l2,
-                         f1>=f2 ~ l1, 
-                         TRUE ~ l2)) %>% 
-    mutate(label = ifelse(is.na(label), variable, label)) %>% 
-    mutate(new_label = paste0(label, ": ", l)) %>% 
-    filter(variable %nin% omit.vars)
-  
-  lp <- cat2$variable
-  names(lp) <- cat2$new_label
-  
-  for(i in 1:nrow(cat2)){
-    
-    dat[,cat2$variable[i]] <- dat[,cat2$variable[i]] == cat2$l[i]
-    
-  }
-  
-  # relabel variables
-  dat %<>% rename(any_of(lp)) 
-  
-  return(dat)
-}
+
 
