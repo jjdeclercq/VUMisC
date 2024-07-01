@@ -1095,6 +1095,17 @@ j_dataChk <- function (d, checks, id, summary = TRUE)
   return(list(s = s, d = Dat))
 }
 
+inline_recode <- function(dat, var){
+  
+  open <- paste0( "mutate(", substitute(var), " = forcats::fct_recode(", substitute(var), ",\n")
+  
+  lvs <- dat %>% pull(var) %>% unique()
+  ll <- data.frame(l = rep('\t\t\t"" = "', length(lvs)), lvs, r = '",\n') %>% mutate(p = paste0(l, lvs, r))
+  ll[nrow(ll), "p"] <- gsub(",\n", "))\n",ll[nrow(ll), "p"])
+  
+  output <- capture.output(cat(open, paste0(ll$p) ))
+  rstudioapi::insertText(output)
+}
 
-
+vsp_palette <- c("#0C3D77" ,"#4A8166", "#267F81", "#4762A6")
 
