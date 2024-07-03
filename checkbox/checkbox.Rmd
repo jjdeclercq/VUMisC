@@ -56,40 +56,10 @@ select <- dplyr::select
 # Generate data
 ```{r}
 set.seed(100)
-trib.x <- tibble::tribble(
-   ~nv,     ~check,
-   "1",    "Mouse",
-   "2",      "Rat",
-   "3",      "Cat",
-   "4",      "Dog",
-   "5",   "Donkey",
-   "6",   "Monkey",
-   "7",   "Turtle",
-   "8", "Hedgehog",
-   "9", "Blue jay",
-  "10",    "Rhino",
-  "11",    "Other",
-  "12",     "None")
 
 
-# check_data("10") %>% jgtt()
-# 
-# check_data_repeat(10, 5)
-
-X <- data.frame(id = 1:100, rep = sample(1:6, 100, replace = TRUE))
-
-c1 <- map(X$id, .f = check_data) %>% bind_rows()%>%
-  left_join(., trib.x, by = "nv") %>%
-  mutate(checkbox = paste(checkbox, nv, sep = "_"), check = ifelse(x==1, check, NA)) %>%
-  select(-x, -nv) %>%
-  pivot_wider(., names_from = "checkbox", values_from = "check", values_fill = NA) 
-
-
-cb <- map2(.x = X$id, .y = X$rep, .f = check_data_repeat) %>% bind_rows()%>%
-  left_join(., trib.x, by = "nv") %>%
-  mutate(checkbox = paste(checkbox, nv, sep = "_"), check = ifelse(x==1, check, NA)) %>%
-  select(-x, -nv) %>%
-  pivot_wider(., names_from = "checkbox", values_from = "check", values_fill = NA) 
+c1 <- gen_checkbox_df(id = 1:100, rep = rep(1, 100))
+cb <- gen_checkbox_df(id = 1:100, rep = sample(1:6, 100, replace = TRUE))
 
 
 # j.label4(cb, collect.labels(df))
@@ -170,7 +140,7 @@ cb %>% clear.labels() %>% head(10) %>% jgtt(., col.names = FALSE)
 Returns data frame that can be joined to original data. Columns may be more suited to other summary tables or modeling.
 
 ```{r}
-checkbox_gather(c1, selection = "checkbox", id.var = c("id")) %>% head()%>% jgtt()
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), output = "df") %>% head()%>% jgtt()
 ```
 
 ### Change data type
@@ -178,7 +148,7 @@ checkbox_gather(c1, selection = "checkbox", id.var = c("id")) %>% head()%>% jgtt
 With non-repeating data, 'any' and 'total' are equivalent. However, setting `count = "total"` returns numeric columns. 
 
 ```{r}
-checkbox_gather(c1, selection = "checkbox", id.var = c("id"), count = "total")%>%head() %>% jgtt()
+checkbox_gather(c1, selection = "checkbox", id.var = c("id"), count = "total", output = "df")%>%head() %>% jgtt()
 ```
 
 ### Summary output
@@ -272,7 +242,7 @@ checkbox_gather(c1, selection = "checkbox", id.var = c("id"),
                 stats = "only", toggle.names = TRUE, output = "summary")
 ```
 
-### Add in stratafication variable
+### Add in stratification variable
 
 Summaries can be stratified by putting the desired variable at `by.var = "site"`.
 
@@ -553,18 +523,6 @@ args(jgt)
 ```
 
 
-```{r}
-mx <- ms %>% mutate(race = ac(race))
-
-recode_factor(mx, "race")
-
-ms %>% mutate(race = forcats::fct_recode(race,
- 			"W" = "White",
- 			"B" = "Black or African American",
- 			"O" = "American Indian or Alaska Native",
- 			"O" = "Decline to Answer",
- 			"O" = "Unknown"))
-```
 
 
 ```{r}

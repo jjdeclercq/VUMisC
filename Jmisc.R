@@ -3,6 +3,8 @@
 ## To update R
 
 # installr::updateR(admin_password = 'Use your computer password!')
+# devtools::install_github("AndreaCirilloAC/updateR")
+# updateR::updateR(admin_password = "PASSWORD") # Where "PASSWORD" stands for your system password
 
 select <- dplyr::select
 ac <- as.character

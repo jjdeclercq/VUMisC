@@ -1,19 +1,40 @@
 
 
-check_data <- function(ID) {
-  data.frame(id = ID, checkbox = "checkbox",
-             x = sample(c(0,1),12,prob = c(0.8, 0.2),  replace = TRUE)) %>%
-    mutate(nv = ac(1:n()))%>%
-    mutate(site = sample(c("Site A", "Site B"), 1))
+
+gen_checkbox_data <- function(ID, rep, by.var = c("Site A", "Site B"),  n.boxes = 12, PROB = 0.2) {
+  map(1:rep, \(R) data.frame(id = ID, checkbox = "checkbox",
+                             x = sample(c(0,1),n.boxes, prob = c(1-PROB, PROB), replace = TRUE)) %>%
+        mutate(nv = as.character(1:n()))%>%
+        mutate(rri = R)) %>%
+    list_rbind() %>% mutate(site = sample(by.var, 1))
 }
 
+gen_checkbox_df <- function(ids, reps, by.var = c("Site A", "Site B"),  n.boxes = 12, PROB = 0.2){
 
-check_data_repeat <- function(ID, rep) {
-  map(1:rep, ~check_data(ID) %>% mutate(rri = .x)) %>%bind_rows() %>%
-    mutate(site = sample(c("Site A", "Site B"), 1))
+  trib.x <- tibble::tribble(
+    ~nv,     ~check,
+    "1",    "Mouse",
+    "2",      "Rat",
+    "3",      "Cat",
+    "4",      "Dog",
+    "5",   "Donkey",
+    "6",   "Monkey",
+    "7",   "Turtle",
+    "8", "Hedgehog",
+    "9", "Blue jay",
+    "10",    "Rhino",
+    "11",    "Other",
+    "12",     "None")
+
+  map2(.x = ids, .y = reps,
+       \(x, y) gen_checkbox_data(x, y, n.boxes = n.boxes, PROB = PROB, by.var = by.var ) )  %>%
+    list_rbind()%>%
+    left_join(., trib.x, by = "nv") %>%
+    mutate(checkbox = paste(checkbox, nv, sep = "_"), check = ifelse(x==1, check, NA)) %>%
+    select(-x, -nv) %>%
+    pivot_wider(., names_from = "checkbox", values_from = "check", values_fill = NA)
+
 }
-
-
 
 
 #' Lookup Names
@@ -79,7 +100,7 @@ lookup_names <- function(dat, selection, simple = FALSE, add.zero = FALSE, tidy.
 
 
 
-#' Reorder columns in a data frame based on column name patterns.
+#' Reorder columns in a data frame based on frequency of data.
 #'
 #' This function reorders the columns in a data frame based on a set of patterns
 #' provided in the `selection` argument. Columns matching the patterns are moved
@@ -127,12 +148,34 @@ reorder_cols <- function(dat, selection) {
 
 
 
+#' Summaries of checkbox variables
+#'
+#' This function performs many common manipulations needed to adequately summarize
+#'
+#' @param dat A data frame.
+#' @param selection Character string to identify set of checkbox variables for inclusion (usually a prefix)
+#' @param id.var ID variable name
+#' @param by.var Stratification variable (optional)
+#' @param count One of "any", "total" or "both". With non-repeating data, 'any' and 'total' are equivalent. However, setting `count = "total"` returns numeric columns for the total number of times the box was selected within each ID.
+#' @param repeat.var Variable capturing the repeat instance.
+#' @param stats Setting to "only" will produce of ID-level summaries of the checkbox selections. Any other character string will include both the `count` designation as well as the stats.
+#' @param tidy.labels Often redcap variable labels for checkboxes contain a lot of extraneous information. Adjusting `tidy.labels = TRUE` should fix this assuming the pattern is of "Long description (choice=DATA ITEM)"
+#' @param toggle.names Logical.Setting to `TRUE` will use the variable labels rather than the variable names.
+#' @param simple.names Logical. Changing to `TRUE` will clean up the trailing descriptor. Note, this feature does not work if `count = "both"`.
+#' @param add.zero Even if there is a checkbox specifically for "none" or "none of the above", there is still room for data entry errors. Setting `add.zero = TRUE` will append a new row to the data, and any record with no other selections will be counted here.
+#' @param output Either 'df' or 'summary'. Setting `output = 'df'` returns a data frame that can be used for further analysis. Columns may be more suited to other summary tables or modeling.
+#' @param reorder.cols Logical. Reorder the data columns based on frequency of selections.
+#' @param str.rm If the label pattern is not consistent with the pattern described in `tidy.labels` Utilize the `str.rm` argument by passing the exact string you want removed. This utilizes regular expressions via `gsub`. If too cumbersome to do within the function call, relabeling the data is also an option.
+#' @param ... Additional arguments passed to `jgt()`
+#'
 
+checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, repeat.var = NULL, count = "any",
+                            stats = "none", tidy.labels = FALSE,
+                            toggle.names = FALSE, simple.names = FALSE, add.zero = FALSE,
+                            output = "summary",reorder.cols = FALSE, str.rm= NULL,
+                            remove.zero.selected = FALSE, ...){
 
-
-checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count = "any", tidy.labels = FALSE,
-                            repeat.var = NULL, stats = "none", toggle.names = FALSE, simple.names = FALSE, add.zero = FALSE,
-                            output = "summary",reorder.cols = FALSE, str.rm= NULL, ...){
+  if(isTRUE(remove.zero.selected)) {add.zero <- TRUE}
 
   ## For matching variable class
   d.class <- dat %>% select(any_of(c(id.var, repeat.var, by.var)) ) %>%
@@ -195,7 +238,9 @@ checkbox_gather <- function(dat, selection, id.var = NULL, by.var = NULL, count 
 
 
   ## Put back in original order
-  int <- key %>% left_join(., int, by = "ID") %>% select(-ID)
+  int <- key %>% left_join(., int, by = "ID") %>% select(-ID)%>%
+    {if(isTRUE(remove.zero.selected)) filter(., `[Zero selected]` == "No") %>%
+        select(., -contains("zero"), -contains("Zero")) else .}
 
   if(output == "df"){
      return(int)
