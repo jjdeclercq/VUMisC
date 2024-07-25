@@ -299,7 +299,7 @@ recat <- function(dat, omit.vars= NULL){
               across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
               across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>%
     mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>%
-    filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(oa), by = "variable") %>%
+    filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(dat), by = "variable") %>%
     mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
                          l2 %in% c("Yes","yes" ) ~ l2,
                          f1>=f2 ~ l1,
@@ -704,7 +704,7 @@ rms.forest.plot <- function(summary, trib, breaks = seq(0.6, 2, .2)){
     ggplot(., aes(x = effect, y = axis)) + geom_point() + 
     geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0) +
     theme_classic() + 
-    geom_vline(xintercept = 1, linetype = 2) + 
+    # geom_vline(xintercept = 1, linetype = 2) + 
     labs(x = "Hazard ratio", y = NULL) +
     facet_grid(facet~., scales = "free_y", switch = "y")+
     theme(strip.text.y.left = element_text(angle = 0))+
@@ -818,7 +818,7 @@ rca_dictionary <- function(rcon, included.ids = del$record_id, id.var = "record_
   
   missing_summary %<>% 
     separate_rows(., "missing", sep = ",") %>%
-    group_by(record_id, missing) %>%
+    group_by(!!sym(id.var), missing) %>%
     summarise(x =  ifelse(is.na(rv), NA, toString(rv))) %>%
     distinct() %>%
     group_by(missing) %>%
