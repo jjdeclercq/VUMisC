@@ -200,7 +200,16 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
                 spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
                 one_row_binary = FALSE, ...){
-  {if(!is.null(by)) dat[,by] <- clear.labels(dat[,by])}
+  
+  {if(!is.null(by)) #dat[,by] <- clear.labels(dat[,by])
+    ST <- ifelse(Hmisc::label(dat[,by])=="", by, Hmisc::label(dat[,by]))
+    
+                spanner.size.actual <- n_distinct(na.omit(dat[,by]))
+                spanner.text.actual <- paste0("**",ST ,"**")  }
+  
+  {if(!is.null(spanner.size)) spanner.size.actual <- spanner.size}
+  {if(!is.null(spanner.text)) spanner.text.actual <- spanner.text}
+  
   sort <- NULL
   {if(order.cat) sort = all_categorical() ~ "frequency"}
   
@@ -227,7 +236,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
     {if(add.p) add_p(., pvalue_fun = function(x) style_pvalue(x, digits = 3)) else .}  %>% 
     {if(overall) add_overall(., last = TRUE) else .}
   
-    if(!is.null(spanner.size)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size)) ~ paste0("**",spanner.text ,"**"))
+    if(!is.null(spanner.size.actual)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size.actual)) ~ paste0("**",spanner.text.actual ,"**"))
  
   return(tab)
 }
@@ -1108,4 +1117,13 @@ inline_recode <- function(dat, var){
 }
 
 vsp_palette <- c("#0C3D77" ,"#4A8166", "#267F81", "#4762A6")
+
+jreport <- function(IN){
+  if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
+    cat(qreport::maketabs(IN))
+  } else {
+    IN
+  }
+}
+
 
