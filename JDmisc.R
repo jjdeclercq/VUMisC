@@ -201,7 +201,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
                 spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
                 one_row_binary = FALSE, ...){
   
-  {if(!is.null(by)) #dat[,by] <- clear.labels(dat[,by])
+  if(!is.null(by)){#dat[,by] <- clear.labels(dat[,by])
     ST <- ifelse(Hmisc::label(dat[,by])=="", by, Hmisc::label(dat[,by]))
     
                 spanner.size.actual <- n_distinct(na.omit(dat[,by]))
@@ -236,7 +236,7 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
     {if(add.p) add_p(., pvalue_fun = function(x) style_pvalue(x, digits = 3)) else .}  %>% 
     {if(overall) add_overall(., last = TRUE) else .}
   
-    if(!is.null(spanner.size.actual)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size.actual)) ~ paste0("**",spanner.text.actual ,"**"))
+    if(!is.null(by)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size.actual)) ~ paste0("**",spanner.text.actual ,"**"))
  
   return(tab)
 }
