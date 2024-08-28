@@ -1127,3 +1127,23 @@ jreport <- function(IN){
 }
 
 
+inline_label <- function(dat, ...){
+  
+  labels <- as.list(substitute(list(...)))[-1] # get the names of the named arguments
+  
+  for(i in 1:length(labels)){
+    Hmisc::label(dat[[names(labels)[[i]]]]) <- labels[[i]] # assign label from named argument
+  }
+  return(clear.label.class(dat))
+}
+# # create some sample data
+# df <- data.frame(x = 1:5, y = 6:10)
+# 
+# # add variable labels using inline_label function
+# # view variable labels
+# 
+# df_labeled <- df %>%
+#   inline_label(x = "Variable X", y = "Variable Y")
+# 
+# Hmisc::label(df_labeled$x) # should return "Variable X"
+# Hmisc::label(df_labeled$y) # should return "Variable Y"
