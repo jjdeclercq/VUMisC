@@ -349,7 +349,7 @@ pgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   
   {if(!is.null(by)) 
     spanner.size <- n_distinct(na.omit(dat[,by]))
-    spanner.text <- paste0("**",Hmisc::label(dat[,by]) ,"**")  }
+    spanner.text <- paste0("**",ifelse(Hmisc::label(dat[,by])=="", by, Hmisc::label(dat[,by])) ,"**")  }
   sort <- NULL
   {if(order.cat) sort = all_categorical() ~ "frequency"}
   
