@@ -1136,6 +1136,11 @@ inline_label <- function(dat, ...){
   }
   return(clear.label.class(dat))
 }
+
+label_pivoted <- function(dat, src){
+  left_join(dat, collect.labels(src), by = c("name"= "variable"))
+}
+
 # # create some sample data
 # df <- data.frame(x = 1:5, y = 6:10)
 # 
