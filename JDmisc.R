@@ -1141,6 +1141,52 @@ label_pivoted <- function(dat, src){
   left_join(dat, collect.labels(src), by = c("name"= "variable"))
 }
 
+fct_case_when <- function(...) {
+  args <- as.list(match.call())
+  levels <- sapply(args[-1], function(f) f[[3]])  # extract RHS of formula
+  levels <- levels[!is.na(levels)]
+  factor(dplyr::case_when(...), levels=levels)
+}
+
+
+scrollify <- function(tab, height = 400, table_id = NULL){
+  
+  table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+  gt_tbl <- as_gt(tab, id = table_id)
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      overflow-y: scroll;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background-color: white;
+      border-bottom: 2px solid #ddd;  /* Sticky border for the whole header */
+    }}
+    #{table_id} th {{
+      background-color: white;
+      z-index: 3;
+      border-bottom: 2px solid #ddd;  /* Sticky border for individual column headers */
+    }}
+    #{table_id} .gt_column_spanner_outer {{
+      background-color: white;
+      border-bottom: 2px solid #ddd;  /* Sticky border for column spanner */
+    }}
+    #{table_id} .gt_column_spanner {{
+      background-color: white;
+      border-bottom: 2px solid #ddd;  /* Sticky border for column spanner */
+    }}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
 # # create some sample data
 # df <- data.frame(x = 1:5, y = 6:10)
 # 
