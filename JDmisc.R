@@ -241,25 +241,38 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   return(tab)
 }
 
-jgtt <- function(dat, col.names = TRUE){
+jgtt <- function(dat, col.names = TRUE) {
   
-  dat %>% 
-    {if(isTRUE(col.names)) sjlabelled::label_to_colnames(.)else .}  %>% 
-    gt() %>%
+  # Generate a table_id
+  table_id <- paste(sample(letters, 5), collapse = "_")
+  
+  # Create the gt table
+  gt_tbl <- dat %>%
+    {if(isTRUE(col.names)) sjlabelled::label_to_colnames(.) else .} %>%
+    gt(., id = table_id) %>%
     opt_row_striping() %>%
     gt::tab_options(table_body.hlines.color = "white",
                     row.striping.background_color = "#fafafa",
                     source_notes.font.size = 12,
                     table.font.size = 12,
-                    # table.width = px(700),
                     heading.align = "left",
                     column_labels.font.weight = 'bold',
                     heading.title.font.size = 16,
                     table.border.top.color = "transparent",
                     table.border.top.width = px(3),
                     data_row.padding = px(4))
+  
+  # Assign the table_id as an attribute of the gt object
+  attr(gt_tbl, "table_id") <- table_id
+  
+  # Return the gt table
+  gt_tbl
 }
 
+# Function to retrieve the table_id from the gt object
+get_table_id <- function(gt_tbl) {
+  return(attr(gt_tbl, "table_id"))
+}
 
 
 # recat <- function(dat, omit.vars = ""){
@@ -1152,7 +1165,18 @@ fct_case_when <- function(...) {
 scrollify <- function(tab, height = 400, table_id = NULL){
   
   table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
-  gt_tbl <- as_gt(tab, id = table_id)
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- get_table_id(tab)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
   
   css <- glue::glue("
     #{table_id} .gt_table {{
@@ -1180,7 +1204,8 @@ scrollify <- function(tab, height = 400, table_id = NULL){
       background-color: white;
       border-bottom: 2px solid #ddd;  /* Sticky border for column spanner */
     }}
-  ")
+  "
+                    )
   
   gt_tbl %>%
     opt_css(css = css)
