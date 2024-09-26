@@ -1162,17 +1162,18 @@ fct_case_when <- function(...) {
 }
 
 
-scrollify <- function(tab, height = 400, table_id = NULL){
+scrollify <- function(tab, height = 400,width = 500, table_id = NULL){
   
-  table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+  
   # Check if the object is a gtsummary or gt object
   if (inherits(tab, "gtsummary")) {
     # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
     gt_tbl <- as_gt(tab, id = table_id)
   } else if (inherits(tab, "gt_tbl")) {
     # If it's already a gt object, we can't assign an ID, so use table_id for CSS
     gt_tbl <- tab
-    table_id <- get_table_id(tab)
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
   } else {
     stop("The input must be a gtsummary or gt object.")
   }
@@ -1182,34 +1183,30 @@ scrollify <- function(tab, height = 400, table_id = NULL){
     #{table_id} .gt_table {{
       display: block;
       height: {height}px;
+      width: {width}px;
+
       overflow-y: scroll;
+      table-align: center !important;
+
     }}
     #{table_id} thead {{
       position: sticky;
       top: 0;
-      z-index: 5;
       background-color: white;
-      border-bottom: 2px solid #ddd;  /* Sticky border for the whole header */
+
     }}
-    #{table_id} th {{
-      background-color: white;
-      z-index: 3;
-      border-bottom: 2px solid #ddd;  /* Sticky border for individual column headers */
+
+    #{table_id} .gt_col_headings {{
+         border-top-style: none
     }}
-    #{table_id} .gt_column_spanner_outer {{
-      background-color: white;
-      border-bottom: 2px solid #ddd;  /* Sticky border for column spanner */
-    }}
-    #{table_id} .gt_column_spanner {{
-      background-color: white;
-      border-bottom: 2px solid #ddd;  /* Sticky border for column spanner */
-    }}
+
   "
-                    )
+  )
   
   gt_tbl %>%
     opt_css(css = css)
-}
+}  
+
 
 
 # # create some sample data
