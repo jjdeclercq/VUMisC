@@ -817,11 +817,15 @@ rca_checkbox_fix <- function(rcon, rdat){
   sjlabelled::copy_labels(outdat, rdat)
 }
 
-rca_instrument <- function(rdat, instrument = NA){
+rca_instrument <- function(rdat, instrument = NA, label_src = NULL){
+  
+   if(is.null(label_src)) {label_src <- rdat}
+  
   rdat %>% 
     filter(redcap_repeat_instrument %in% instrument) %>% 
     remove.blank.columns2() %>% droplevels() %>% 
-    sjlabelled::copy_labels(., rdat)
+    as.data.frame() %>% 
+    sjlabelled::copy_labels(., label_src)
 }
 
 rca_dictionary <- function(rcon, included.ids = del$record_id, id.var = "record_id", repeat.var = NULL){
@@ -1131,6 +1135,23 @@ inline_recode <- function(dat, var){
 
 vsp_palette <- c("#0C3D77" ,"#4A8166", "#267F81", "#4762A6")
 
+declutter_df <- function(dat, rcon){
+  dat %>% remove.blank.columns2() %>% droplevels() %>% sjlabelled::copy_labels(., rcon)
+}
+
+
+step_exclude <- function(table = NULL, step, data, id.var = "record_id"){
+  bind_rows(table,
+            data.frame(step = step, IDs = n_distinct(data[,id.var]), observations = nrow(data))) %>% 
+    mutate(n_excluded_ids = lag(IDs, default = NA) - IDs, 
+           n_excluded_obs = lag(observations, default = NA) - observations) %>% 
+    mutate(across(everything(), ~replace_na(.x, 0))) %>% 
+    mutate(cumulative_excluded_ids = cumsum(n_excluded_ids),
+           cumulative_excluded_obs = cumsum(n_excluded_obs))
+}
+
+
+
 jreport <- function(IN){
   if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
     cat(qreport::maketabs(IN))
@@ -1206,6 +1227,18 @@ scrollify <- function(tab, height = 400,width = 500, table_id = NULL){
   gt_tbl %>%
     opt_css(css = css)
 }  
+
+#' Bidirectional setdiff
+#' 
+#' @param x,y As in \code{setdiff}
+#' @return A list of the two items with setdiff run in both 
+#'   directions.  
+#' @examples
+#' setdiff2(1:5, 3:8)
+#' @export
+setdiff2 <- function(x, y) {
+  list("In 'x' but not 'y'"=setdiff(x, y), "In 'y' but not 'x'"=setdiff(y, x))
+}
 
 
 
