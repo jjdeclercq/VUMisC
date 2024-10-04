@@ -1154,7 +1154,7 @@ step_exclude <- function(table = NULL, step, data, id.var = "record_id"){
 
 jreport <- function(IN){
   if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
-    cat(qreport::maketabs(IN))
+    cat(qreport::maketabs(IN)%>% compact())
   } else {
     IN
   }
