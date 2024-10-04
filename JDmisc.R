@@ -1241,6 +1241,79 @@ setdiff2 <- function(x, y) {
 }
 
 
+ggplot_to_ppt_custom <- function(test_plot, HT = 6, WD = 8, EDIT = TRUE) {
+  
+  # Define the output file path (saved in the working directory)
+  ppt_file <- file.path(getwd(), "ppt_fig.pptx")
+  
+  # Create a new PowerPoint object
+  ppt <- officer::read_pptx()
+  
+  # Add a slide with "Title and Content" layout from "Office Theme"
+  ppt <- officer::add_slide(ppt, layout = "Title and Content", master = "Office Theme")
+  
+  # Ensure the plot is valid before adding it
+  testgg <- try(invisible(ggplot2::ggplot_build(test_plot)), silent = TRUE)
+  
+  if (!"try-error" %in% class(testgg)) {
+    
+    # Add the plot to the slide using dml (editable graphics)
+    ppt <- officer::ph_with(
+      ppt, 
+      rvg::dml(code = print(test_plot), 
+               editable = EDIT  # Keep it editable in PowerPoint
+      ), 
+      location = officer::ph_location(width = WD, height = HT, newlabel = "hello")  # Set width and height for the plot
+    )
+  }
+  
+  # Save the PowerPoint file in the working directory with the specified name
+  print(ppt, target = ppt_file)
+  
+  # Open the PowerPoint file
+  browseURL(ppt_file)
+}
+
+jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI = 300, UNITS = "in",device = "png", ...){
+  
+  local.dir = "/figures"
+  
+  if(is.null(file.name)){
+    file.name <- paste0(deparse(substitute(figure)), ".",device)
+  }
+  
+  local.dir <- paste0(getwd(),"/figures")
+  
+  if(!dir.exists(local.dir)){
+    dir.create(local.dir)
+  }
+  
+  FN <- paste0(local.dir,"/",file.name)
+  
+  # Save file to local directory
+  ggsave(filename = FN, plot = figure, dpi = DPI, units = UNITS, device = device, ...) %>% suppressMessages()
+  
+  if(!is.null(publish.dir)){
+    publish.dir <- paste0(publish.dir,"/figures")
+    
+    if(!dir.exists(publish.dir)){
+      dir.create(publish.dir)
+    }
+    
+    file.copy(FN, paste0(publish.dir,"/",file.name), overwrite = TRUE)
+    
+  }
+  
+  FNx <- paste0("figures/",file.name)
+  
+  
+  
+  if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
+    cat(paste0("[![",CAP, "](",FNx,")](",FNx,")\n"))
+  } else {
+    figure
+  }
+}
 
 # # create some sample data
 # df <- data.frame(x = 1:5, y = 6:10)
