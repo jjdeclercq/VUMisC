@@ -1274,7 +1274,7 @@ ggplot_to_ppt_custom <- function(test_plot, HT = 6, WD = 8, EDIT = TRUE) {
   browseURL(ppt_file)
 }
 
-jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI = 300, UNITS = "in",device = "png", ...){
+jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI = 300, UNITS = "in",device = "png",preview = FALSE, ...){
   
   local.dir = "/figures"
   
@@ -1310,7 +1310,9 @@ jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI
   
   if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
     cat(paste0("[![",CAP, "](",FNx,")](",FNx,")\n"))
-  } else {
+  } else if(isTRUE(preview)){
+    browseURL(FNx)
+  }else{
     figure
   }
 }
