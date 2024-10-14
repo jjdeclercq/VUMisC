@@ -270,6 +270,26 @@ print(info)
 cat("2. [Download Plot 2 (300 DPI)](AoigA.png)\n")
 
 
+```{r}
+read_csv("/Users/joshdeclercq/Downloads/CPIAUCSL.csv", col_select = 1:5) %>% filter(!is.na(inf)) %>% mutate(DATE = mdy(DATE)) %>% 
+  ggplot(., aes(x = DATE)) +
+  geom_point(aes(y = sal), colour= "blue")+
+  geom_point(aes(y = adj), colour= "red")
+```
+
+
+# Alt
+::: {#fig-albums layout-nrow=8}
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3e35fd38afec558d7ecf74aba7cc7e1a.jpg" width="100px" tooltip="tip">
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/ef42d5f5bcd2e7e64e07f2aad7beb950.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3e35fd38afec558d7ecf74aba7cc7e1a.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/975663a652bf4e6c9373c8b2848f9303.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3515cb4917515a809e5047db720bb1f6.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/d2cf06157ec57bd0a86306aa39ad59ab.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/e6e115d68486dcde60f3c4ac69526d6f.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/6bae4cacc179713429c2e72b872ca178.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/1fd78f809b2fa11299f7dbf80ad2ef5c.jpg" width="100px"  tooltip="tip">
+:::
 # Other
 ```{r}
 library(officer)
@@ -365,14 +385,3 @@ gt_with_button(tbl)
 
 
 
-```{r}
-#| fig-link: 'plot1_300dpi2.png'
-
-test_plot
-```
-
-```{r}
-#| fig-link: 'plot1_300dpi2.png'
-
-test_plot
-```

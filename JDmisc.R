@@ -1317,6 +1317,33 @@ jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI
   }
 }
 
+jj_index <- function(dat, qmd, omit = ""){
+  
+  if(is.data.frame(dat)){dat = list(dat)}
+  
+  vars <- map(dat, ~setdiff(names(.x), omit)) %>% unlist() %>% unique()
+  labs <-  map(dat, collect.labels) %>% list_rbind()
+  
+  prp <- parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
+    mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
+    mutate(x = ifelse(type == "rmd_chunk", paste0(parsermd::as_document(ast), collapse = ""), "")) %>% 
+    mutate(y = "") %>% 
+    filter(order >0)
+  
+  for(i in 1:length(vars)){
+    prp %<>% mutate(y = ifelse(grepl(vars[i], x), paste(vars[i], y, sep = ", "), y))
+  }
+  
+  ndf <- prp %>% select(order, y) %>% separate_rows(y, sep = ", ") %>% 
+    filter(y != "") %>% 
+    left_join(., get_toc(qmd), by = "order") %>% 
+    left_join(., labs, by = c("y"= "variable"))
+  
+  return(ndf)
+  
+}
+
+
 # # create some sample data
 # df <- data.frame(x = 1:5, y = 6:10)
 # 
