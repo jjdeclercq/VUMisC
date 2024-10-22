@@ -1,0 +1,1402 @@
+---
+title: "ChatGPT to scrolling tables in 24 inefficient prompts"
+author:
+- Josh DeClercq
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: true
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+callout-appearance: minimal
+self-contained: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+
+require(tibble)
+require(glue)
+require(purrr)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
+```
+
+
+```{r}
+# grabs <- list.files("screen_grabs/")
+
+# gdf <- data.frame(o = grabs) %>% mutate(x = file.info(paste0("screen_grabs/",o))$ctime) %>% arrange(x) %>% 
+#   mutate(n = 1:n(), shot = paste0("screen_grabs/shot", n, ".png"), f = paste0("screen_grabs/", o))
+# 
+# file.rename(gdf$f, gdf$shot)
+
+# cat(paste0("![](screen_grabs/shot",1:26,".png)\n"))
+```
+
+# Scrollify() background
+
+After our last meeting, a few of us were talking about report formatting and the question of whether or not it was possible to have long tables scroll vertically with frozen headers.
+
+**Challenge accepted**
+
+Here's the abridged version of how I used Chat-GPT to branch off into areas with which I have very little experience.
+
+## Long gt table
+```{r}
+gt(mtcars)
+```
+
+
+# The prompts
+
+## Prompt 1: Ask Chat-GPT
+
+![](screen_grabs/shot1.png)
+
+## Prompt 2: Refine prompt
+
+ ![](screen_grabs/shot2.png)
+ 
+## Prompt 3: Error
+
+ ![](screen_grabs/shot3.png)
+ 
+## Prompt 4: Just Google it
+
+![](screen_grabs/shot4.png)
+
+## Prompt 5: errors
+
+![](screen_grabs/shot5.png)
+
+## Prompt 6: Educate the robot
+
+![](screen_grabs/shot6.png)
+
+## Prompt 7: Help with the building css
+
+![](screen_grabs/shot7.png)
+
+## Prompt 8: Not working
+
+![](screen_grabs/shot8.png)
+
+## Prompt 9: Not working
+
+![](screen_grabs/shot9.png)
+
+
+![](screen_grabs/shot10.png)
+
+## Prompt 10: Not working
+
+![](screen_grabs/shot11.png)
+
+## Prompt 11: Try a different approach
+
+![](screen_grabs/shot12.png)
+
+## Prompt 12: Provide more info
+
+![](screen_grabs/shot13.png)
+
+## Prompt 13: Generalize for different table inputs 
+
+![](screen_grabs/shot14.png)  
+
+
+
+![](screen_grabs/shot15.png)      
+
+## Prompt 14: Is something missing?
+
+![](screen_grabs/shot16.png)
+
+## Prompt 15: suggest a new approach
+
+![](screen_grabs/shot17.png)
+
+## Prompt 16: helper function for gt objects
+
+![](screen_grabs/shot18.png)
+
+
+
+![](screen_grabs/shot19.png)
+
+## Prompt 17: ask for simpler solution
+
+![](screen_grabs/shot20.png)
+
+## Prompt 18: headers not sticking
+
+
+![](screen_grabs/shot21.png)
+
+## Prompt 19: not working
+
+![](screen_grabs/shot22.png)
+
+## Prompt 20: not working
+
+![](screen_grabs/shot23.png)
+
+## Prompt 21: back to google
+
+![](screen_grabs/shot24.png)
+
+## Prompt 22: Nevermind, I don't want Javascript
+
+![](screen_grabs/shot25.png)
+
+## Prompt 23: Inspect element
+
+![](screen_grabs/shot26.png)
+
+## Prompt 24: Moving on...
+
+![](screen_grabs/garlic.png)
+
+# The function
+
+```
+function(tab, height = 400,width = 500, table_id = NULL){
+  
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+
+      overflow-y: scroll;
+      table-align: center !important;
+
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+
+    }}
+
+    #{table_id} .gt_col_headings {{
+         border-top-style: none
+    }}
+
+  "
+  )
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+```
+
+## Helper function - get_table_id
+
+```
+
+function(gt_tbl) {
+  return(attr(gt_tbl, "table_id"))
+}
+
+```
+# Scrollify in action
+
+## gt object
+
+Using a straight gt object is tricky because so far as I can tell, there isn't a way to access the table ID, so you have to assign it in the gt() call and reference it in the scrollify call as well.
+
+```{r}
+#| echo: true
+#| code-fold: show
+
+gt(mtcars, id = "garlic_bread") %>% scrollify(., table_id = "garlic_bread", height = 300, width = 400)
+
+```
+
+## With jgtt()
+
+`jgtt()` is a helper function that formats the table to my preferred look. It also assigns a table ID and makes it accessible to `scrollify()`. See Prompt 16.
+
+```
+function(dat, col.names = TRUE) {
+  
+  # Generate a table_id
+  table_id <- paste(sample(letters, 5), collapse = "_")
+  
+  # Create the gt table
+  gt_tbl <- dat %>%
+    {if(isTRUE(col.names)) sjlabelled::label_to_colnames(.) else .} %>%
+    gt(., id = table_id) %>%
+    opt_row_striping() %>%
+    gt::tab_options(table_body.hlines.color = "white",
+                    row.striping.background_color = "#fafafa",
+                    source_notes.font.size = 12,
+                    table.font.size = 12,
+                    heading.align = "left",
+                    column_labels.font.weight = 'bold',
+                    heading.title.font.size = 16,
+                    table.border.top.color = "transparent",
+                    table.border.top.width = px(3),
+                    data_row.padding = px(4))
+  
+  # Assign the table_id as an attribute of the gt object
+  attr(gt_tbl, "table_id") <- table_id
+  
+  # Return the gt table
+  gt_tbl
+}
+```
+
+```{r}
+jgtt(mtcars) %>% scrollify(., height = 300, width = 400)
+```
+
+## With gtsummary
+
+```{r}
+mtcars %>% jgt(., by = "cyl")%>% scrollify(., height = 300, width = 500)
+```
+
+
+# It's not perfect, but I've had enough css for now
+
+## Issues
+
+Need to set width manually because for whatever reason, the bottom border is not appropriately sized:
+```{r}
+jgtt(mtcars) %>% scrollify(., height = 300)
+
+```
+
+Also I tried really hard to get the grey line under the header column to stick as well, but just couldn't get there.
+
+
+
+# Part 2 - horizontal scrolling
+
+## Prompt 1 - ask
+
+![](screen_grabs/Screenshot1.png)
+
+```{r}
+scrollify2 <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for the sticky first column(s)
+  freeze_css <- ""
+  for (i in seq_len(freeze_columns)) {
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {i - 1}em;
+        z-index: 1;
+        background-color: white;
+      }}
+    "))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+jgtt(mtcars) %>% scrollify2(., width = 200, freeze_columns = 2)
+
+```
+
+## Prompt 2 - point out issue
+
+![](screen_grabs/Screenshot2.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for the sticky first column(s) with specified widths
+  freeze_css <- ""
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {i - 1} * {col_width};
+        z-index: 1;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        width: {col_width};
+      }}
+    "))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+# Freeze the first 2 columns and set their widths to 100px and 150px respectively
+jgtt(mtcars) %>%   my_table_function(tab = .,width = 200, freeze_columns = 2, column_widths = c(50, 50))
+
+```
+
+## Prompt 3 - issue persists
+
+![](screen_grabs/Screenshot3.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for the sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 1;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        width: {col_width};
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+# Freeze the first 2 columns with specified widths
+jgtt(mtcars) %>%  my_table_function(tab = ., freeze_columns = 2, column_widths = c(50, 50), width = 200)
+
+```
+
+## Prompt 4 - pause on the first issue, raise another
+
+![](screen_grabs/Screenshot4.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for the sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        width: {col_width};
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;  /* Higher z-index for headers to stack correctly */
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3; /* Ensure headers are on top */
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgtt(mtcars) %>%  my_table_function(tab = ., freeze_columns = 2, column_widths = c(50, 50), width = 200)
+```
+
+## Prompt 5 - Ask chat-GPT what would be helpful for first issue
+
+![](screen_grabs/Screenshot5.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for the sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        width: {col_width};
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;  /* Higher z-index for headers to stack correctly */
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+  display: block;
+  height: {height}px;
+  width: {width}px;
+  overflow-y: scroll;
+  overflow-x: auto;
+  table-layout: fixed;  /* Enforces strict adherence to column widths */
+  table-align: center !important;
+}}
+
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3; /* Ensure headers are on top */
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgtt(mtcars) %>%  my_table_function(tab = ., freeze_columns = 2, column_widths = c(50, 50), width = 200)
+```
+
+## Prompt 6 - my bad
+
+![](screen_grabs/Screenshot6.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;  /* Enforces strict adherence to column widths */
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+     #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+  ")
+    gt_tbl %>%
+    opt_css(css = css)
+}
+jgtt(mtcars) %>%  my_table_function(tab = ., freeze_columns = 2, column_widths = c(50, 50), width = 200)
+```
+
+**Try with gtsummary**
+
+```{r}
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 1, column_widths = c(50), width = 600)
+```
+
+## Prompt 7 - extend to gtsummary tables now
+
+![](screen_grabs/Screenshot7.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "100px"  # Default width
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # Additional CSS to handle spanner headers
+  spanner_css <- glue::glue("
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+  ")
+  
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;  /* Enforces strict adherence to column widths */
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    {freeze_css}
+    {spanner_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 1, width = 600)
+```
+
+## Prompt 8 - describe new issue
+
+![](screen_grabs/Screenshot8.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # Additional CSS for spanner headers and general styling
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 2, width = 600)
+```
+
+## Prompt 9 - Go to google and report back
+
+![](screen_grabs/Screenshot9.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # CSS to handle sticky stubhead
+  stubhead_css <- glue::glue("
+    #{table_id} .gt_stubhead {{
+      position: sticky;
+      left: 0;
+      background-color: white;
+      z-index: 4;  /* Higher z-index to ensure it stays on top */
+    }}
+  ")
+  
+  # Additional CSS for spanner headers and general styling
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+    {stubhead_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 2, width = 600)
+```
+
+## Prompt 10 - did I catch an error?
+
+![](screen_grabs/Screenshot10.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # CSS to handle sticky stubhead and stubhead label
+  stubhead_css <- glue::glue("
+    #{table_id} .gt_stubhead_label {{
+      position: sticky;
+      left: 0;
+      background-color: white;
+      z-index: 4;  /* Higher z-index to ensure it stays on top */
+    }}
+  ")
+  
+  # Additional CSS for spanner headers and general styling
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+    {stubhead_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 2, width = 600)
+```
+
+## Prompt 11 - inspect element and report back
+
+![](screen_grabs/Screenshot11.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # CSS to handle sticky headers specifically for the Characteristic header
+  characteristic_css <- glue::glue("
+    #{table_id} th.gt_col_heading {{
+      position: sticky;
+      top: 0;
+      z-index: 3;  /* Ensure it stays on top */
+      background-color: white;
+      white-space: nowrap;  /* Prevents smooshing */
+      min-width: 150px;  /* Adjust as needed */
+      max-width: 150px;  /* Adjust as needed */
+    }}
+  ")
+  
+  # Additional CSS for general styling
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+    {characteristic_css}
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 2, width = 600)
+```
+
+## Prompt 12 - ask chatGPT what it needs
+
+![](screen_grabs/Screenshot12.png)
+
+## Prompt 13 - report back
+
+![](screen_grabs/Screenshot13.png)
+![](screen_grabs/Screenshot131.png)
+
+```{r}
+my_table_function <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+  
+  # Check if the object is a gtsummary or gt object
+  if (inherits(tab, "gtsummary")) {
+    # Convert gtsummary object to gt and assign table ID
+    table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
+    gt_tbl <- as_gt(tab, id = table_id)
+  } else if (inherits(tab, "gt_tbl")) {
+    # If it's already a gt object, use table_id for CSS
+    gt_tbl <- tab
+    table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+  } else {
+    stop("The input must be a gtsummary or gt object.")
+  }
+  
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
+  
+  # CSS to handle sticky headers specifically for the Characteristic header
+  characteristic_css <- glue::glue("
+    #{table_id} th.gt_col_heading {{
+      position: sticky;
+      top: 0;
+      z-index: 3;  /* Ensure it stays on top */
+      background-color: white;
+      white-space: nowrap;  /* Prevents smooshing */
+      min-width: 150px;  /* Adjust as needed */
+      max-width: 150px;  /* Adjust as needed */
+    }}
+  ")
+  
+  # Additional CSS for general styling
+  css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+      overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
+      table-align: center !important;
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 3;
+    }}
+    #{table_id} .gt_col_headings {{
+      border-top-style: none;
+    }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+    {characteristic_css}
+    
+
+    
+#{table_id} .gt_col_headings th.gt_left {{
+    position: -webkit-sticky; 
+    position: sticky;
+    left: 0; 
+    background-color: white; 
+    z-index: 10; 
+}}
+
+  ")
+  
+  gt_tbl %>%
+    opt_css(css = css)
+}
+
+jgt(mtcars, by = "mpg", overall = TRUE)%>%  
+  my_table_function(tab = ., freeze_columns = 1, width = 600)
+```
+
+## Prompt 14 - success!
+
+![](screen_grabs/Screenshot14.png)
+
+# Takeaways, part 2
+
+  - Don't be afraid to try something new
+  - Don't expect it to work right away
+  - Provide suggestions and feedback
+  - Do other research in parallel
+  - Try to avoid rabbit holes
+  - add as much supporting information as possible
+  - ask what inputs would be most helpful
+  

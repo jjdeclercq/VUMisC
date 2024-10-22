@@ -1182,9 +1182,11 @@ fct_case_when <- function(...) {
   factor(dplyr::case_when(...), levels=levels)
 }
 
+get_table_id <- function(gt_tbl) {
+  return(attr(gt_tbl, "table_id"))
+}
 
-scrollify <- function(tab, height = 400,width = 500, table_id = NULL){
-  
+scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
   
   # Check if the object is a gtsummary or gt object
   if (inherits(tab, "gtsummary")) {
@@ -1192,41 +1194,101 @@ scrollify <- function(tab, height = 400,width = 500, table_id = NULL){
     table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
     gt_tbl <- as_gt(tab, id = table_id)
   } else if (inherits(tab, "gt_tbl")) {
-    # If it's already a gt object, we can't assign an ID, so use table_id for CSS
+    # If it's already a gt object, use table_id for CSS
     gt_tbl <- tab
     table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
   } else {
     stop("The input must be a gtsummary or gt object.")
   }
   
+  # Create CSS for sticky first column(s) with specified widths
+  freeze_css <- ""
+  cumulative_left <- 0
+  for (i in seq_len(freeze_columns)) {
+    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
+      paste0(column_widths[i], "px")
+    } else {
+      "150px"  # Default width, made slightly wider for headers
+    }
+    
+    freeze_css <- paste0(freeze_css, glue::glue("
+      #{table_id} td:nth-child({i}), 
+      #{table_id} th:nth-child({i}) {{
+        position: sticky;
+        left: {cumulative_left}px;
+        z-index: 2;
+        background-color: white;
+        min-width: {col_width};
+        max-width: {col_width};
+        white-space: nowrap;  /* Prevents smooshing for longer header text */
+        overflow: hidden;
+        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
+      }}
+      #{table_id} th:nth-child({i}) {{
+        top: 0;
+        z-index: 3;
+      }}
+    "))
+    
+    # Update cumulative left offset
+    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
+  }
   
+  # CSS to handle sticky headers specifically for the Characteristic header
+  characteristic_css <- glue::glue("
+    #{table_id} th.gt_col_heading {{
+      position: sticky;
+      top: 0;
+      z-index: 3;  /* Ensure it stays on top */
+      background-color: white;
+      white-space: nowrap;  /* Prevents smooshing */
+      min-width: 150px;  /* Adjust as needed */
+      max-width: 150px;  /* Adjust as needed */
+    }}
+  ")
+  
+  # Additional CSS for general styling
   css <- glue::glue("
     #{table_id} .gt_table {{
       display: block;
       height: {height}px;
       width: {width}px;
-
       overflow-y: scroll;
+      overflow-x: auto;
+      table-layout: fixed;
       table-align: center !important;
-
     }}
     #{table_id} thead {{
       position: sticky;
       top: 0;
       background-color: white;
-
+      z-index: 3;
     }}
-
     #{table_id} .gt_col_headings {{
-         border-top-style: none
+      border-top-style: none;
     }}
+    #{table_id} .gt_spanner {{
+      white-space: nowrap;
+      min-width: 100px;
+    }}
+    {freeze_css}
+    {characteristic_css}
+    
 
-  "
-  )
+    
+#{table_id} .gt_col_headings th.gt_left {{
+    position: -webkit-sticky; 
+    position: sticky;
+    left: 0; 
+    background-color: white; 
+    z-index: 10; 
+}}
+
+  ")
   
   gt_tbl %>%
     opt_css(css = css)
-}  
+}
 
 #' Bidirectional setdiff
 #' 
