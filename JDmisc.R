@@ -1182,6 +1182,11 @@ fct_case_when <- function(...) {
   factor(dplyr::case_when(...), levels=levels)
 }
 
+na_omit <- function(dat) {
+  out <- dat %>% na.omit() %>% sjlabelled::copy_labels(dat)
+  return(out)
+}
+
 get_table_id <- function(gt_tbl) {
   return(attr(gt_tbl, "table_id"))
 }
@@ -1234,19 +1239,20 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_co
     cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
   }
   
-  # CSS to handle sticky headers specifically for the Characteristic header
-  characteristic_css <- glue::glue("
-    #{table_id} th.gt_col_heading {{
-      position: sticky;
-      top: 0;
-      z-index: 3;  /* Ensure it stays on top */
-      background-color: white;
-      white-space: nowrap;  /* Prevents smooshing */
-      min-width: 150px;  /* Adjust as needed */
-      max-width: 150px;  /* Adjust as needed */
-    }}
-  ")
-  
+  # CSS to handle sticky headers specifically for the Characteristic header - I don't think this is needed?
+  # would need to put     {characteristic_css} back into glue call if want it
+  # characteristic_css <- glue::glue("
+  #   #{table_id} th.gt_col_heading {{
+  #     position: sticky;
+  #     top: 0;
+  #     z-index: 3;  /* Ensure it stays on top */
+  #     background-color: white;
+  #     white-space: nowrap;  /* Prevents smooshing */
+  #     min-width: 150px;  /* Adjust as needed */
+  #     max-width: 150px;  /* Adjust as needed */
+  #   }}
+  # ")
+  # 
   # Additional CSS for general styling
   css <- glue::glue("
     #{table_id} .gt_table {{
@@ -1272,7 +1278,7 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_co
       min-width: 100px;
     }}
     {freeze_css}
-    {characteristic_css}
+
     
 
     
