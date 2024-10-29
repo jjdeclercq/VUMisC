@@ -313,7 +313,7 @@ t3  %>% select(name, age, sex, pclass) %>% jgtt() %>%
 
 ```{r}
 
-t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
+t3 %>% select( age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
   jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)%>% 
   scrollify(., height = 300, width = 500)
 ```

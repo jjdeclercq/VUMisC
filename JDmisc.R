@@ -1197,7 +1197,7 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL) {
   if (inherits(tab, "gtsummary")) {
     table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
     gt_tbl <- as_gt(tab, id = table_id)
-    default_col_width <- "150px"  # gtsummary's recommended width
+    default_col_width <- "auto"  # gtsummary's recommended width
   } else if (inherits(tab, "gt_tbl")) {
     gt_tbl <- tab
     table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)

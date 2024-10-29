@@ -1730,13 +1730,14 @@ jgt(mtcars, by = "mpg", overall = TRUE)%>%
   
   
 ```{r}
+## THISGOOD
 scrollify <- function(tab, height = 400, width = 500, table_id = NULL) {
   
   # Set table ID based on object type
   if (inherits(tab, "gtsummary")) {
     table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
     gt_tbl <- as_gt(tab, id = table_id)
-    default_col_width <- "150px"  # gtsummary's recommended width
+    default_col_width <- "auto"  # gtsummary's recommended width
   } else if (inherits(tab, "gt_tbl")) {
     gt_tbl <- tab
     table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
@@ -1774,6 +1775,13 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL) {
       min-width: 150px;
       max-width: 150px;
     }}
+            #{table_id} .gt_col_headings th.gt_left {{
+    position: -webkit-sticky; 
+    position: sticky;
+    left: 0; 
+    background-color: white; 
+    z-index: 10; 
+        }}
   ") else ""
 
   # Main CSS for scrollable, responsive table layout
@@ -1798,13 +1806,7 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL) {
     {freeze_css}
     {header_css}
     
-        #{table_id} .gt_col_headings th.gt_left {{
-    position: -webkit-sticky; 
-    position: sticky;
-    left: 0; 
-    background-color: white; 
-    z-index: 10; 
-        }}
+
   ")
 
   # Apply CSS to the table
