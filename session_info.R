@@ -14,6 +14,7 @@
 #'     toc: true
 #'     mainfont: albertus
 #'     theme: flatly
+#'     html-table-processing: none
 #' toc-location: left
 #' toc-depth: 3
 #' execute:
@@ -67,6 +68,23 @@ devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/J
 select <- dplyr::select
 
 
+#' 
+## -----------------------------------------------------------------------------
+#| eval: false
+#| echo: false
+proj.name <- "JDmisc"
+file.name <- "JDmisc.qmd"
+pub.onedrive.dir <- "docs"
+output.name <- "index"
+
+
+## Publish report to OneDrive for VSP (copied from vpn directory)
+publish_to_vsp(qmd = file.name, 
+               output = output.name,
+               directory = shared_path)
+
+
+#' 
 #' 
 #' # Objective
 #' 
@@ -291,8 +309,10 @@ t3  %>% select(name, age, sex, pclass) %>%
 
 #' 
 #' ## Scrolling tables
-#' ### Vertical scrolling  
-#' #### gt tables
+#' 
+#' Using the `height` and `width` within the `scrollify` function, you can set the container size of the resulting gt or gtsummary table. If the table height is larger than the container, the table will scroll vertically with frozen header column. If the table is wider than the width container, the table will scroll horizontally with the first column frozen.
+#' 
+#' ### gt tables
 #' 
 #' For a base `gt()` table, you need to assign a table ID, and then reference that table ID in the `scrollify` call.
 #' 
@@ -301,36 +321,23 @@ t3  %>% select(name, age, sex, pclass) %>% gt(., id = "titan") %>%
   scrollify(., table_id = "titan", height = 300, width = 400)
 
 #' 
-#' #### Using jgtt
+#' ### Using jgtt
 #' 
 #' `jgtt()` assigns a table ID and makes it accessible to `scrollify()`.
 ## -----------------------------------------------------------------------------
-t3  %>% select(name, age, sex, pclass) %>% jgtt() %>% 
+t3  %>% select(name, age, sex, pclass, fare, survived) %>% jgtt() %>% 
   scrollify(., height = 300, width = 375)
 
 #' 
-#' #### gtsummary tables
+#' ### gtsummary tables
 #' 
 ## -----------------------------------------------------------------------------
 
-t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
+t3 %>% select( age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
   jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)%>% 
   scrollify(., height = 300, width = 500)
 
 #' 
-#' ### Horizontal scrolling
-#' 
-## -----------------------------------------------------------------------------
-
-
-jgtt(t3, col.names = FALSE) %>% scrollify(., width = 500)
-
-t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
-  mutate(age_cat = cut2(age, m = 100)) %>% 
-  jgt(.,by = "age_cat" )%>%  
-  scrollify(tab = .,width = 300)
-
-
 #' 
 #' 
 #' # Dates
