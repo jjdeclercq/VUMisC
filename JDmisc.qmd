@@ -824,6 +824,8 @@ c("a", "b", "c", "d", "e", "f")
 
 
 ```{r}
+#| eval: false
+#| 
 require(datapasta)
 j.label6 <- function(df, all = FALSE){
   

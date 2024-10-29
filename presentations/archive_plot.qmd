@@ -1,0 +1,368 @@
+---
+title: "Archive plots"
+author:
+- Josh DeClercq
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: true
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+callout-appearance: minimal
+self-contained: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+
+require(tibble)
+require(glue)
+require(purrr)
+require(qreport)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
+```
+
+
+
+
+```{r}
+#| eval: false
+# Define a function to create a ggplot object with stored code
+create_ggplot_with_code <- function(plot_code) {
+  plot_expr <- substitute(plot_code)
+  plot <- eval(plot_expr)
+  
+  plot_code_str <- paste(deparse(plot_expr, width.cutoff = 500), collapse = "\n")
+  
+  # Use styler to format the code string
+  styled_code <- styler::style_text(plot_code_str)
+  
+  # Store the plot and code in a custom object, retaining the ggplot class
+  structure(plot, code = styled_code, class = c("ggplot_with_code", class(plot)))
+}
+
+# Define a print method for the custom class to behave like a normal ggplot
+print.ggplot_with_code <- function(x, ...) {
+  # Print the ggplot object
+  NextMethod("print", x)
+}
+
+# Define a function to save the plot and code
+archive_plot <- function(ggplot_with_code_obj, plot_filename, code_filename) {
+  ggsave(filename = plot_filename, plot = ggplot_with_code_obj)
+  code <- attr(ggplot_with_code_obj, "code")
+  writeLines(code, con = code_filename)
+}
+
+# Example usage
+(plot_obj <- create_ggplot_with_code(
+  d4 %>% select(1, adherence:patient_disease_activity) %>% pivot_longer(., -1) %>%
+  label_pivoted(., d4) %>% count(label, value) %>%
+  complete(label, value, fill = list(n = 0)) %>%
+  mutate(st = 2 * n * (value == "Core") + n * (value == "Reach")) %>%
+  group_by(label) %>% mutate(st = sum(st)) %>% ungroup() %>%
+  mutate(label = fct_reorder(factor(label), st, max)) %>%
+  ggplot(., aes(x = value, y = label, fill = n, label = n)) +
+  geom_tile() +
+  theme_minimal() +
+  scale_fill_gradient(
+    low = "#E7E8EC",
+    high = "#123D78",
+    space = "Lab",
+    na.value = "grey50",
+    guide = "colourbar",
+    aesthetics = "fill"
+  ) +
+  guides(fill = FALSE) +
+  geom_text(
+    aes(color = after_scale(
+      prismatic::best_contrast(fill, c("white", "black"))
+    )),
+    size = 3.5, show.legend = FALSE
+  ) +
+  labs(y = "Element", x = "Categorization") +
+  guides(colour = FALSE)
+))
+
+
+# Archive the plot and code
+archive_plot(plot_obj, "my_plot.png", "my_plot_code.txt")
+```
+
+```{r}
+# Define a function to create a ggplot object with stored, styled code
+archive_plot <- function(plot_code, filename, location = getwd()) {
+  plot_expr <- substitute(plot_code)
+  plot <- eval(plot_expr)
+  
+  # Convert the expression to a string with preserved formatting
+  plot_code_str <- paste(deparse(plot_expr, width.cutoff = 500), collapse = "\n")
+  
+  # Use styler to format the code string
+  styled_code <- styler::style_text(plot_code_str)
+  
+  structured_plot <- list(Plot = plot, Code = styled_code)
+  
+  saveRDS(structured_plot, file = filename)
+  
+  return(plot)
+}
+
+
+
+```
+
+
+```{r}
+archive_plot(mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP"),
+  "test.rds")
+
+archive_plot(mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP"),
+  "test.rds")
+```
+
+## y2 - x - this one
+```{r}
+
+unpack_plot <- function(filename) {
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  
+  return(ggplot_with_code_obj$Code)
+}
+
+unpack_plot("test.rds")
+
+```
+
+
+
+
+## y  
+```{r}
+
+load_and_display_plot <- function(filename) {
+  # Load the custom object
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Print the plot
+  print(ggplot_with_code_obj)
+  
+  # Extract the code
+  code <- attr(ggplot_with_code_obj, "code")
+  
+  # Write the code to a Quarto collapsible callout panel
+  # qreport::makecallout(code, callout='.callout-note collapse=true', label='# Code to generate plot\n', type='print')
+  # qreport::makecodechunk(code, opts = list(echo = TRUE, eval = FALSE))
+    cat("``` \n\n```{r echo=TRUE, eval = FALSE}\n", code,"\n```\n" )
+  # cat(code, "\n")
+  # cat("```\n")
+}
+
+load_and_display_plot2 <- function(filename) {
+  # Load the custom object
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  k <- c(ggplot_with_code_obj$Code)
+
+cat(knitr::knit(text = k, quiet = TRUE))
+  
+return(ggplot_with_code_obj$Plot)
+
+}
+
+load_and_display_plot2("test.rds")
+```
+
+
+## y2 - sneak!
+```{r}
+ggplot_with_code_obj <- readRDS("test.rds")
+
+unpack_plot <- function(filename) {
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  
+  return(ggplot_with_code_obj$Code)
+}
+
+
+unpack_plot("test.rds") %>% cat(knitr::knit(text = ., quiet = TRUE))
+```
+
+
+
+## sneak
+```{r}
+unpack_plot <- function(filename) {
+  # Load the custom object
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  
+  # Return the code as a string
+  return(ggplot_with_code_obj$Code)
+}
+
+# Run the function and capture the code
+code_output <- unpack_plot("test.rds")
+
+# Prepare the formatted code for printing
+k <- c(code_output)
+
+# Print the formatted code using knitr::knit
+cat(knitr::knit(text = k, quiet = TRUE))
+
+```
+
+## w  
+```{r}
+ggplot_with_code_obj <- readRDS("test.rds")
+ggplot_with_code_obj <- readRDS("test.rds")
+ggplot_with_code_obj$Plot
+k <- c("```{r label_x, eval = FALSE, echo = TRUE}\n",ggplot_with_code_obj$Code,"\n```")
+
+cat(knitr::knit(text = k, quiet = TRUE))
+# x <- attr(ggplot_with_code_obj, "code")
+# 
+# y <- capture.output(cat(x))
+```
+
+## x
+```{r}
+k <- c(ggplot_with_code_obj$Code)
+
+cat(knitr::knit(text = k, quiet = TRUE))
+
+```
+
+
+## x 2
+```{r}
+k <- c(ggplot_with_code_obj$Code)
+
+cat(knitr::knit(text = k, quiet = TRUE))
+
+```
+
+
+## x23
+```{r}
+k <- c(ggplot_with_code_obj$Code)
+ggplot_with_code_obj$Plot
+cat(knitr::knit(text = k, quiet = TRUE))
+```
+
+## x233
+```{r}
+k <- c(ggplot_with_code_obj$Code)
+jreport(list(Plot = ggplot_with_code_obj$Plot,
+Code = capture.output(cat(knitr::knit(text = k, quiet = TRUE)))))
+```
+
+## x 3
+
+```{r}
+#| results: asis
+#| 
+# Function to unpack and display the plot and formatted code
+unpack_plot <- function(filename) {
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  
+  # Generate code in a collapsible callout for Quarto
+  code_output <- paste(ggplot_with_code_obj$Code, collapse = "\n")
+  callout <- paste0("::: {.callout-tip collapse='true'}\n\n",
+                    "## Plot Code\n",
+                    "```{r chunky_butt, echo = TRUE, eval = FALSE}\n",
+                    code_output,
+                    "\n```\n",
+                    ":::\n")
+  
+  # Print callout (works in Quarto; for R Markdown, remove callout wrapper and set chunk options)
+  # cat(knitr::knit(text = callout, quiet = TRUE))
+  cat(callout)
+}
+
+unpack_plot("test.rds")
+
+```
+
+```{r}
+library(qreport)
+
+# Function to unpack and display the plot and formatted code
+unpack_plot <- function(filename) {
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  
+  # Prepare formatted code block
+  code_output <- paste(ggplot_with_code_obj$Code, collapse = "\n")
+  
+  # Use qreport::make_callout to create a collapsible callout
+  qreport::makecallout(
+    x = paste0("```{r, echo=TRUE, eval=FALSE}\n", code_output, "\n```"),
+    callout = ".callout-tip collapse='true'",
+    label = "## Plot Code",
+    type = "knit"  # Render directly as character output
+  )
+}
+
+# Example usage
+unpack_plot("test.rds")
+
+```
+

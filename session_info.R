@@ -30,6 +30,7 @@
 #' fig-align: center
 #' ---
 #' 
+## -----------------------------------------------------------------------------
 #| include: false
 
 require(Hmisc)
@@ -83,7 +84,7 @@ select <- dplyr::select
 #' 
 #' This report uses the `titanic3` data. This report isn't intended to be a description of the best way to analyze this data.
 #' 
-
+## -----------------------------------------------------------------------------
 # Retreive data
 getHdata(titanic3)
 
@@ -101,9 +102,8 @@ t3 %<>% mutate(missing.age = yesno(is.na(age)))
 #' 
 #' # Labels
 #' 
-#' ## Clear labels
 #' 
-
+## -----------------------------------------------------------------------------
 t3 %<>% clear.labels()
 
 #' 
@@ -111,13 +111,14 @@ t3 %<>% clear.labels()
 #' 
 #' `j.label5()` is code that outputs text suitable for pasting into your markdown document.
 #' 
+## -----------------------------------------------------------------------------
 #| code-fold: show
 j.label5(t3)
 
 #' 
 #' Labels can then be filled in by hand.
 #' 
-
+## -----------------------------------------------------------------------------
 t3 <- labelVector::set_label( t3 ,
                  name = "Passenger name",
  		             pclass = 'Passenger class',
@@ -133,12 +134,13 @@ t3 <- labelVector::set_label( t3 ,
 #' 
 #' Subsequent execution of the code will have the added labels incorporated. Toggling the `all` argument determines whether all variables will be displayed or just those without labels
 #' 
+## -----------------------------------------------------------------------------
 #| code-fold: show
 j.label5(t3, all = TRUE)
 j.label5(t3, all = FALSE)
 
 #' 
-
+## -----------------------------------------------------------------------------
 t3 <- labelVector::set_label( t3 ,
  		s.cat = "Survived",
  		missing.age = "Missing age")
@@ -148,7 +150,7 @@ t3 <- labelVector::set_label( t3 ,
 #' 
 #' Create a data frame of variable names and the corresponding label.
 #' 
-
+## -----------------------------------------------------------------------------
 collect.labels(t3)
 
 #' 
@@ -156,6 +158,7 @@ collect.labels(t3)
 #' 
 #' Sometimes labelled data can present challenges as shown by the example below:
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 t3 %>% select(name, age, sibsp) %>% 
   pivot_longer(., -1, names_to = "var")
@@ -177,7 +180,7 @@ t3 %>% select(name, age, sibsp) %>%
 #' 
 #' I did not write this function ([stackoverflow](https://stackoverflow.com/questions/2394902/remove-variable-labels-attached-with-foreign-hmisc-spss-import-functions)) but I find it immensely helpful in removing all labels from a data frame.
 #' 
-
+## -----------------------------------------------------------------------------
 t3.labelled <- t3 ## create a second data frame for regaining labels later
 t3 <- clear.labels(t3)
 
@@ -189,13 +192,13 @@ t3 %>% select(name, age, sibsp) %>% pivot_longer(., -1, names_to = "var") %>% he
 #' 
 #' Not my function, but I find this to be very helpful.
 #' 
-
+## -----------------------------------------------------------------------------
 t3 <- sjlabelled::copy_labels(t3, t3.labelled)
 
 #' 
 #' `clear.label.class()` is a nice workaround for labelled data. It just removes the class "label" from the variable, but still retains the utility of labelled data.
 #' 
-
+## -----------------------------------------------------------------------------
 t3 <- clear.label.class(t3)
 
 
@@ -204,14 +207,14 @@ t3 <- clear.label.class(t3)
 #' 
 #' Sometimes there are columns in the data that don't carry any information. `remove.blank.columns2()` will remove all columns from the data that are either all `NA` or all empty characters (`""`).
 #' 
-
+## -----------------------------------------------------------------------------
 t3 %<>% mutate(x = "", y = NA, z= as.Date(NA))
 
 t3 %>% select(x, y, z) %>% head(10)
 t3 %<>% remove.blank.columns2()
 
 #' 
-
+## -----------------------------------------------------------------------------
 names(t3)
 
 #' 
@@ -221,14 +224,14 @@ names(t3)
 #' 
 #' Produces code that can be pasted into your report for adding in variable labels:
 #' 
-
+## -----------------------------------------------------------------------------
 label_factor(t3, "sex")
 
 
 #' 
 #' Can accommodate any number of factor variables:
 #' 
-
+## -----------------------------------------------------------------------------
 t3 %>% select(where(is.factor)) %>% 
   names() %>% 
   label_factor(t3, .)
@@ -238,7 +241,7 @@ t3 %>% select(where(is.factor)) %>%
 #' 
 #' Produce editable code using `forcats::fct_recode()`
 #' 
-
+## -----------------------------------------------------------------------------
 recode_factor(t3, "embarked")
 
 
@@ -247,11 +250,11 @@ recode_factor(t3, "embarked")
 #' 
 #' Create an editable `tribble` table that can be joined back into original data frame.
 #' 
-
+## -----------------------------------------------------------------------------
 j.trib(t3, "embarked")
 
 #' 
-
+## -----------------------------------------------------------------------------
 trib.t3<- tribble(~embarked, ~replace,
               'Cherbourg', '',
               'Queenstown', '',
@@ -265,7 +268,7 @@ trib.t3<- tribble(~embarked, ~replace,
 #' 
 #' The package `gtsummary` provides a lot of great functions for summarizing data. The `jgt()` is a wrapper for `tbl_summary` that handles 99% of summary tables that I need to make.
 #' 
-
+## -----------------------------------------------------------------------------
 t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
   jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)
 
@@ -274,7 +277,7 @@ t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>%
 #' 
 #' Simply prints the data using the `gt` package, and stylized to match `jgt` output.
 #' 
-
+## -----------------------------------------------------------------------------
 t3  %>% select(name, age, sex, pclass) %>% head(20) %>% jgtt()
 
 #' 
@@ -282,7 +285,7 @@ t3  %>% select(name, age, sex, pclass) %>% head(20) %>% jgtt()
 #' 
 #' Better at presenting lots of data: tabbed output, searchable text, filtering and embedding data as a csv file are available. The `reactable` package provides a ton a great functionality. `j.reactable` is a convenient wrapper that suits the majority of table needs.
 #' 
-
+## -----------------------------------------------------------------------------
 t3  %>% select(name, age, sex, pclass) %>% 
   j.reactable(., csv.file = "titanic")
 
@@ -291,7 +294,7 @@ t3  %>% select(name, age, sex, pclass) %>%
 #' 
 #' Create dummy data data using a Cauchy distribution to generate some obvious outliers.
 #' 
-
+## -----------------------------------------------------------------------------
 t3 %<>% 
   mutate(date1 = ymd("1888-01-01") + days(floor(rcauchy((nrow(t3)), 0, 300))),
          date2 = ymd("1898-01-01") + days(floor(rcauchy((nrow(t3)), 0, 200))),
@@ -311,7 +314,7 @@ t3 <- set_label( t3 ,
 #' 
 #' ### Figure
 #' 
-
+## -----------------------------------------------------------------------------
 t3_dates <- t3 %>% 
   date_dists(., id.var = "id", label.src = t3)
 
@@ -328,7 +331,7 @@ ggplot(t3_dates, aes(x = value)) +
 #' 
 #' ### Table
 #' 
-
+## -----------------------------------------------------------------------------
 t3_dates %>%
   select(variable, sequence, date, id) %>%
   na.omit() %>%
@@ -339,7 +342,7 @@ t3_dates %>%
 #' 
 #' Fit a logistic model with survival being the outcome. For illustrative purposes, fit one model with an age x sex interaction and one without.
 #' 
-
+## -----------------------------------------------------------------------------
 dd <- datadist(t3)
 options(datadist = "dd", prType = "html", grType='plotly')
 t3.mod <- lrm(s.cat ~ rcs(age, 5) + sex  + pclass + embarked + sibsp, data = t3)
@@ -360,7 +363,7 @@ t3.mod.int <- lrm(s.cat ~ rcs(age, 5) * sex  + pclass + embarked + sibsp, data =
 #' 
 #' -   **label** - the variable label, as it will appear in tables
 #' 
-
+## -----------------------------------------------------------------------------
 rms.trib(t3.mod)
 
 trib.cols.rms <- tibble::tribble(
@@ -391,25 +394,25 @@ trib.cols.rms <- tibble::tribble(
 #' ::: panel-tabset
 #' ### Output
 #' 
-
+## -----------------------------------------------------------------------------
 rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, anova(t3.mod))
 
 #' 
 #' ### Raw output
 #' 
-
+## -----------------------------------------------------------------------------
 rms.sum.table3(summary = summary(t3.mod), trib.cols.rms, raw = TRUE)
 
 #' 
 #' ### With interaction
 #' 
-
+## -----------------------------------------------------------------------------
 rms.sum.table3(summary = summary(t3.mod.int), trib.cols.rms, anova = anova(t3.mod.int))
 
 #' 
 #' ### Adjustments via rms.summary()
 #' 
-
+## -----------------------------------------------------------------------------
 rms.sum.table3(summary = summary(t3.mod.int, age = c(25, 50, 75), sex = "female"), 
                trib.cols.rms, anova = anova(t3.mod.int))
 
@@ -422,7 +425,7 @@ rms.sum.table3(summary = summary(t3.mod.int, age = c(25, 50, 75), sex = "female"
 #' ::: panel-tabset
 #' ### Forest plot
 #' 
-
+## -----------------------------------------------------------------------------
 rms.forest.plot(summary(t3.mod), trib.cols.rms) +
   scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20))+
   labs(x = "Odds ratio")
@@ -430,7 +433,7 @@ rms.forest.plot(summary(t3.mod), trib.cols.rms) +
 #' 
 #' ### With interaction
 #' 
-
+## -----------------------------------------------------------------------------
 rms.forest.plot(summary(t3.mod.int, age = c(50, 30, 15)), trib.cols.rms) +
   scale_x_continuous(trans='log', breaks = c(0.25, 0.5, 1, 2, 4, 8, 20)) +
   labs(x = "Odds ratio")
@@ -439,7 +442,7 @@ rms.forest.plot(summary(t3.mod.int, age = c(50, 30, 15)), trib.cols.rms) +
 #' 
 #' ### Possible extensions
 #' 
-
+## -----------------------------------------------------------------------------
 bind_rows(
   rms.sum.table3(summary = summary(t3.mod, age = c(70, 55), sex = "female"), trib.cols.rms, raw = TRUE) ,
   rms.sum.table3(summary = summary(t3.mod, age = c(55, 40), sex = "female"), trib.cols.rms, raw = TRUE) ) %>% 
@@ -494,7 +497,7 @@ bind_rows(
 #' 
 #' -   **fit -** rms model object
 #' 
-
+## -----------------------------------------------------------------------------
 t3_int <- expand.int(seq(10, 70, 10), c("male", "female"), "age", "sex", t3.mod.int)
 
 head(t3_int)
@@ -505,7 +508,7 @@ head(t3_int)
 #' 
 #' This function just formats the output of `expand.int`
 #' 
-
+## -----------------------------------------------------------------------------
 int.react(t3_int)
 
 #' 
@@ -513,7 +516,7 @@ int.react(t3_int)
 #' 
 #' Produces a tile plot of all requested interaction contrasts
 #' 
-
+## -----------------------------------------------------------------------------
 int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
 
 #' 
@@ -534,6 +537,7 @@ int.tile.plot(t3_int, "age", "sex") +labs(fill = "Estimate")
 #' [1] "Archive directory created at /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 
 changelog2(t3, "id") ## expected no action - yes
@@ -543,6 +547,7 @@ changelog2(t3, "id") ## expected no action - yes
 #' [1] "No comparisons needed"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 archive(t3) ## expected save new data - yes
 
@@ -551,6 +556,7 @@ archive(t3) ## expected save new data - yes
 #' [1] "New copy of data saved"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 ad0 <- retrieve_archive("t3") # expected 2 row - yes
 
@@ -564,6 +570,7 @@ changelog2(t3, "id") ## expected new comparison - yes
 #' [1] "1 comparisons run.\nSummaries saved to: /Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 archive(t3) ## expect no action- yes
 
@@ -572,6 +579,7 @@ archive(t3) ## expect no action- yes
 #' [1] "No changes made to data"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 ad <- retrieve_archive("t3") # expected 2 rows - yes
 changelog2(t3, "id")  ##expect no action - yes
@@ -582,6 +590,7 @@ changelog2(t3, "id")  ##expect no action - yes
 #' ```
 #' 
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 t3 %<>% mutate(z = 12, w = 11)
 archive(t3) ## expect new archive- yes
@@ -593,6 +602,7 @@ archive(t3) ## expect new archive- yes
 #' [1] "New copy of data saved"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 archive(t3) ## expect no action - yes
 
@@ -600,6 +610,7 @@ archive(t3) ## expect no action - yes
 #' [1] "No changes made to data"
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 changelog2(t3, "id") ## expect updates to logs - yes
 
@@ -609,12 +620,14 @@ changelog2(t3, "id") ## expect updates to logs - yes
 #' ```
 #' 
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 ad4 <- retrieve_archive("t3") ##expected 3 rows - yes
 
 
 #' 
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 t3 %<>% mutate(ff = 23)
 changelog2(t3, "id") # expect no action
@@ -631,6 +644,7 @@ ad6 <- retrieve_archive("t3") # expect 4 rows - yes
 #' 
 #' ```
 #' 
+## -----------------------------------------------------------------------------
 #| eval: false
 t3 %<>% mutate(z = NULL, a = "b")
 Sys.sleep(1)
@@ -655,37 +669,37 @@ ad7 <- retrieve_archive("t3") # expect 6 rows - yes
 #' ```
 #' 
 #' ### Archive summary
-
+## -----------------------------------------------------------------------------
 retrieve_archive("t3") %>% j.reactable()
 
 #' 
 #' 
 #' ### Changelog output
 #' ::: panel-tabset
-
+## -----------------------------------------------------------------------------
 load("/Users/joshdeclercq/Documents/GitHub/VUMisC/archive/t3/changelog_output_t3.rda")
 
 #' 
 #' #### Summary comparison
-
+## -----------------------------------------------------------------------------
 changelog_output$summary_comp_table %>% 
   pivot_wider(., names_from = "comparison", values_from = "value") %>% 
   j.reactable()
 
 #' 
 #' #### Differences by ID
-
+## -----------------------------------------------------------------------------
 changelog_output$diffs_by_id %>% j.reactable()
 
 #' 
 #' #### Variables not shared
 #' 
-
+## -----------------------------------------------------------------------------
 changelog_output$vars_not_shared %>% j.reactable()
 
 #' 
 #' #### Differences by variable
-
+## -----------------------------------------------------------------------------
 changelog_output$diffs_by_var %>% j.reactable()
 
 #' 
@@ -698,7 +712,7 @@ changelog_output$diffs_by_var %>% j.reactable()
 #' This function will check any number of logical expressions to find data errors or outliers. A data table is require. for the function input. The function outputs a summary of the number of checks found that meet the criteria, as well as a detailed data frame of each instance.
 #' 
 #' ### Summary
-
+## -----------------------------------------------------------------------------
 
 
 checks <- expression(date1 < ymd("1802-12-31"),
@@ -713,7 +727,7 @@ B$s
 #' 
 #' ### Detail
 #' 
-
+## -----------------------------------------------------------------------------
 B$d %>% j.reactable(., groupBy = c("Check"), csv.file = "titanic data checks")
 
 #' 
@@ -723,7 +737,7 @@ B$d %>% j.reactable(., groupBy = c("Check"), csv.file = "titanic data checks")
 #' Takes in a rmd (or qmd) file name or path and returns a data frame of the table of contents. When used in conjunction with the `csv.file` argument for `j.reactable`, it allows for a downloadable version of the current documents table of contents. I find this very useful in situations where collaborators want to provide large-scale annotations. 
 #' 
 #' 
-
+## -----------------------------------------------------------------------------
 get_toc("JDmisc.qmd") %>% j.reactable(., csv.file = "JDmisc toc")
 
 #' 
@@ -733,7 +747,7 @@ get_toc("JDmisc.qmd") %>% j.reactable(., csv.file = "JDmisc toc")
 #' The table of contents can also be leveraged to produce truncated reports where sections can be included/ excluded by simply toggling a field in the csv file. 
 #' 
 #' 
-
+## -----------------------------------------------------------------------------
 abbr <- read.csv("JDmisc toc.csv")
 
 jgtt(abbr)
@@ -741,7 +755,7 @@ jgtt(abbr)
 #' 
 #' The `parsermd` package allows you to access you code in raw form. With some simple data manipulation, the undesired sections can be pruned out of the document. The resulting code can be saved as a different qmd or rmd file. (Note: I had some minor issues with the yaml header with the qmd format, so some minor tweaks are necessary. I have directly compiled an abbreviated report in the past using an rmd file, however.)
 #' 
-
+## -----------------------------------------------------------------------------
 parsed <- parsermd::parse_rmd("JDmisc.qmd") %>% as.data.frame() %>%
   mutate(x = 1*(type=="rmd_heading"), n = cumsum(x)) %>%
   left_join(., abbr, by =c("n"= "order")) 
@@ -762,6 +776,91 @@ j.reactable(parsed, groupBy= c("sec_h1", "sec_h2"))
 #' 
 #' Zooming out, one can envision how this type of function can be used to forge a reference for which functions are being routinely used, and in which report a certain function was called.
 #' 
-
+## -----------------------------------------------------------------------------
 session_info("JDmisc.qmd")
 
+#' 
+#' 
+## -----------------------------------------------------------------------------
+#| eval: false
+
+remotes::install_github('couthcommander/datastate', upgrade = 'never')
+library(datastate)
+
+Hmisc::getHdata(titanic3)
+t3 <- titanic3 %>% mutate(cabin = as.character(cabin))
+t3[[1]] <- c('first','second','third')[match(t3[[1]], c('1st','2nd','3rd'))]
+t3 %<>% mutate(survived = as.factor(survived))
+
+dd <- datadict(t3)
+
+myfile2 <- paste0("jd_misc_datastate2", '.yaml')
+dd2yaml(dd, file = myfile2)
+
+dd1 <- makeFactor(dd, t3, 'pclass')
+dd1 <- addRecode(dd1, t3, vars = 'survived')
+myfile <- paste0("jd_misc_datastate", '.yaml')
+dd2yaml(dd1, file = myfile)
+sprintf('make changes to %s', myfile)
+# directly edit file to do something like this
+#dd1$variables[[1]]$factor[[1]]$label_output <- '1st'
+#dd1$variables[[1]]$factor[[2]]$label_output <- '2nd'
+#dd1$variables[[1]]$factor[[3]]$label_output <- '3rd'
+#dd1$variables[[2]]$recode[[1]]$newvalue <- 'dead'
+#dd1$variables[[2]]$recode[[2]]$newvalue <- 'alive'
+#dd1$variables[[10]]$factor <- NULL
+#dd1$variables[[12]]$factor <- NULL
+
+upd <- yaml2dd(myfile)
+out <- mod(upd)
+
+
+collect.labels(out)
+
+j.label5(t3) %>% datapasta::dpasta()
+c("a", "b", "c", "d", "e", "f")
+c("a", "b", "c", "d", "e", "f")
+
+#' 
+#' 
+## -----------------------------------------------------------------------------
+#| eval: false
+#|
+require(datapasta)
+j.label6 <- function(df, all = FALSE){
+  
+  prev <- collect.labels(df) %>% mutate(combined = paste0("\t\t", variable, ' = "', label, '"', ',\n'))
+  
+  if(!all) prev %<>% filter(label == "")
+  prev[nrow(prev), "combined"] <- gsub(",\n", ")\n\n",prev[nrow(prev), "combined"])
+  
+  
+  
+  output <- capture.output(cat(deparse(substitute(df)), "<- labelVector::set_label(", deparse(substitute(df)), ",\n",
+      paste0(prev$combined)))
+  
+  # output
+ rstudioapi::insertText(output)
+}
+j.label6(t3, all = TRUE)
+
+
+
+
+t3 <- labelVector::set_label( t3 ,
+ 		pclass = "",
+ 		survived = "",
+ 		name = "Name",
+ 		sex = "",
+ 		age = "Age",
+ 		sibsp = "Number of Siblings/Spouses Aboard",
+ 		parch = "Number of Parents/Children Aboard",
+ 		ticket = "Ticket Number",
+ 		fare = "Passenger Fare",
+ 		cabin = "",
+ 		embarked = "",
+ 		boat = "",
+ 		body = "Body Identification Number",
+ 		home.dest = "Home/Destination")
+
+#' 
