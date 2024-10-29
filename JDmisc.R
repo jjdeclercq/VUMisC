@@ -1191,69 +1191,60 @@ get_table_id <- function(gt_tbl) {
   return(attr(gt_tbl, "table_id"))
 }
 
-scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_columns = 1, column_widths = NULL) {
+scrollify <- function(tab, height = 400, width = 500, table_id = NULL) {
   
-  # Check if the object is a gtsummary or gt object
+  # Set table ID based on object type
   if (inherits(tab, "gtsummary")) {
-    # Convert gtsummary object to gt and assign table ID
     table_id <- ifelse(is.null(table_id), paste(sample(words, 2), collapse = "_"), table_id)
     gt_tbl <- as_gt(tab, id = table_id)
+    default_col_width <- "150px"  # gtsummary's recommended width
   } else if (inherits(tab, "gt_tbl")) {
-    # If it's already a gt object, use table_id for CSS
     gt_tbl <- tab
     table_id <- ifelse(is.null(table_id), get_table_id(tab), table_id)
+    default_col_width <- "auto"  # Allow automatic column width
   } else {
     stop("The input must be a gtsummary or gt object.")
   }
   
-  # Create CSS for sticky first column(s) with specified widths
-  freeze_css <- ""
-  cumulative_left <- 0
-  for (i in seq_len(freeze_columns)) {
-    col_width <- if (!is.null(column_widths) && length(column_widths) >= i) {
-      paste0(column_widths[i], "px")
-    } else {
-      "150px"  # Default width, made slightly wider for headers
-    }
-    
-    freeze_css <- paste0(freeze_css, glue::glue("
-      #{table_id} td:nth-child({i}), 
-      #{table_id} th:nth-child({i}) {{
-        position: sticky;
-        left: {cumulative_left}px;
-        z-index: 2;
-        background-color: white;
-        min-width: {col_width};
-        max-width: {col_width};
-        white-space: nowrap;  /* Prevents smooshing for longer header text */
-        overflow: hidden;
-        text-overflow: ellipsis;  /* Ensure text doesn't overflow */
-      }}
-      #{table_id} th:nth-child({i}) {{
-        top: 0;
-        z-index: 3;
-      }}
-    "))
-    
-    # Update cumulative left offset
-    cumulative_left <- cumulative_left + as.numeric(sub("px", "", col_width))
-  }
+  # Freeze first column only, with flexible width based on type
+  freeze_css <- glue::glue("
+    #{table_id} td:nth-child(1),
+    #{table_id} th:nth-child(1) {{
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background-color: white;
+      min-width: {default_col_width};
+      max-width: {default_col_width};
+      white-space: nowrap;
+    }}
+    #{table_id} th:nth-child(1) {{
+      top: 0;
+      z-index: 3;
+    }}
+  ")
   
-  # CSS to handle sticky headers specifically for the Characteristic header - I don't think this is needed?
-  # would need to put     {characteristic_css} back into glue call if want it
-  # characteristic_css <- glue::glue("
-  #   #{table_id} th.gt_col_heading {{
-  #     position: sticky;
-  #     top: 0;
-  #     z-index: 3;  /* Ensure it stays on top */
-  #     background-color: white;
-  #     white-space: nowrap;  /* Prevents smooshing */
-  #     min-width: 150px;  /* Adjust as needed */
-  #     max-width: 150px;  /* Adjust as needed */
-  #   }}
-  # ")
-  # 
-  # Additional CSS for general styling
+  # gtsummary-specific header fix
+  header_css <- if (inherits(tab, "gtsummary")) glue::glue("
+    #{table_id} th.gt_col_heading {{
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background-color: white;
+      white-space: nowrap;
+      min-width: 150px;
+      max-width: 150px;
+    }}
+            #{table_id} .gt_col_headings th.gt_left {{
+    position: -webkit-sticky; 
+    position: sticky;
+    left: 0; 
+    background-color: white; 
+    z-index: 10; 
+        }}
+  ") else ""
+  
+  # Main CSS for scrollable, responsive table layout
   css <- glue::glue("
     #{table_id} .gt_table {{
       display: block;
@@ -1261,8 +1252,7 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_co
       width: {width}px;
       overflow-y: scroll;
       overflow-x: auto;
-      table-layout: fixed;
-      table-align: center !important;
+      table-layout: auto;
     }}
     #{table_id} thead {{
       position: sticky;
@@ -1273,29 +1263,16 @@ scrollify <- function(tab, height = 400, width = 500, table_id = NULL, freeze_co
     #{table_id} .gt_col_headings {{
       border-top-style: none;
     }}
-    #{table_id} .gt_spanner {{
-      white-space: nowrap;
-      min-width: 100px;
-    }}
     {freeze_css}
-
+    {header_css}
     
-
-    
-#{table_id} .gt_col_headings th.gt_left {{
-    position: -webkit-sticky; 
-    position: sticky;
-    left: 0; 
-    background-color: white; 
-    z-index: 10; 
-}}
 
   ")
   
+  # Apply CSS to the table
   gt_tbl %>%
     opt_css(css = css)
 }
-
 #' Bidirectional setdiff
 #' 
 #' @param x,y As in \code{setdiff}

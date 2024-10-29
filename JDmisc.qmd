@@ -290,6 +290,49 @@ t3  %>% select(name, age, sex, pclass) %>%
   j.reactable(., csv.file = "titanic")
 ```
 
+## Scrolling tables
+### Vertical scrolling  
+#### gt tables
+
+For a base `gt()` table, you need to assign a table ID, and then reference that table ID in the `scrollify` call.
+
+```{r}
+t3  %>% select(name, age, sex, pclass) %>% gt(., id = "titan") %>% 
+  scrollify(., table_id = "titan", height = 300, width = 400)
+```
+
+#### Using jgtt
+
+`jgtt()` assigns a table ID and makes it accessible to `scrollify()`.
+```{r}
+t3  %>% select(name, age, sex, pclass) %>% jgtt() %>% 
+  scrollify(., height = 300, width = 375)
+```
+
+#### gtsummary tables
+
+```{r}
+
+t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
+  jgt(., by = "s.cat", spanner.size = 2, spanner.text = "Survived", overall = TRUE)%>% 
+  scrollify(., height = 300, width = 500)
+```
+
+### Horizontal scrolling
+
+```{r}
+
+
+jgtt(t3, col.names = FALSE) %>% scrollify(., width = 500)
+
+t3 %>% select(age, sex, pclass, fare, embarked, sibsp, parch, s.cat) %>% 
+  mutate(age_cat = cut2(age, m = 100)) %>% 
+  jgt(.,by = "age_cat" )%>%  
+  scrollify(tab = .,width = 300)
+
+```
+
+
 # Dates
 
 Create dummy data data using a Cauchy distribution to generate some obvious outliers.
