@@ -1388,6 +1388,35 @@ jj_index <- function(dat, qmd, omit = ""){
   
 }
 
+jpub <- function(qmd, output, directory){
+  ## qmd = "filename.Rmd" (was originally part of my quarto conversion)
+  ## Output is the quoted name for the output file, e.g. "Project X"
+  ## directory is the path to the VSP biostats report folder for the project
+  
+  ## Publish report to OneDrive for VSP (copied from vpn directory)
+  
+  local.dir <- paste0(getwd(),"/reports")
+  
+  if(!dir.exists(local.dir)){
+    dir.create(local.dir)
+  }
+  
+  
+  of <- paste0(Sys.Date()," ", output, ".html" )
+  orig <- gsub("qmd|Rmd", "html", qmd)
+  
+  if(grepl("qmd", qmd)){
+    quarto::quarto_render(input = qmd)
+  }else{
+    # rmarkdown::render
+    rmarkdown::render(input = qmd)
+  }
+  
+  # # Quarto does not yet support rendering to different directory -- bleh
+  file.copy(from = orig, to = paste0(directory,"/",of), overwrite = TRUE)
+  file.copy(from = orig, to = paste0(local.dir,"/",of), overwrite = TRUE)
+}
+
 
 # # create some sample data
 # df <- data.frame(x = 1:5, y = 6:10)

@@ -130,8 +130,9 @@ archive_plot(plot_obj, "my_plot.png", "my_plot_code.txt")
 ```
 
 ```{r}
+#| eval: false
 # Define a function to create a ggplot object with stored, styled code
-archive_plot <- function(plot_code, filename, location = getwd()) {
+archive_plot <- function(plot_code, filename, location = NULL) {
   plot_expr <- substitute(plot_code)
   plot <- eval(plot_expr)
   
@@ -143,50 +144,322 @@ archive_plot <- function(plot_code, filename, location = getwd()) {
   
   structured_plot <- list(Plot = plot, Code = styled_code)
   
+    if (!is.null(location)) {
+    if (dir.exists(location)) {
+      filename <- file.path(location, filename)
+    } else {
+      warning(paste("Directory does not exist:", location, "- saving to working directory."))
+    }
+  }
   saveRDS(structured_plot, file = filename)
   
   return(plot)
 }
 
 
+permute_gg_cols <- function(plot){
+  
+  vars <- extract_plot_vars(plot) %>% unlist() %>% unname()
+  df_permuted <- as.data.frame(lapply(plot$data %>% select(any_of(vars)), function(column) sample(column)))
+  df_permuted
+}
 
+permute_cols <- function(data, vars){
+
+  df_permuted <- as.data.frame(lapply(data %>% select(any_of(vars)), function(column) sample(column)))
+  df_permuted
+}
+
+# function(plot, vars){
+#   # 
+#   # vars <- extract_plot_vars(plot) %>% unlist() %>% unname()
+#   df_permuted <- as.data.frame(lapply(plot$data %>% select(any_of(vars)), function(column) sample(column)))
+#   df_permuted
+# }
+
+# unpack_plot <- function(filename) {
+#   ggplot_with_code_obj <- readRDS(filename)
+#   
+#   # Display plot
+#   print(ggplot_with_code_obj$Plot)
+#   permute_gg_cols(ggplot_with_code_obj$Plot) %>% str() 
+#   
+#   return(list(Code = ggplot_with_code_obj$Code))
+# }
 ```
 
 
 ```{r}
-archive_plot(mtcars %>% 
-  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
-  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP"),
-  "test.rds")
-
-archive_plot(mtcars %>% 
-  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
-  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP"),
-  "test.rds")
+# archive_plot(plot_code = 
+#     mtcars %>% 
+#     ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+#     geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear),
+#   filename = "test.rds")
+# 
+# unpack_plot("test.rds")
+# prepper <- function(plot_code){
+#   CODE <- substitute(plot_code)
+#  glue::glue("archive_plot(
+#                   {CODE},
+#  
+#             filename = '', 
+#             location = NULL)")
+# }
+#  
+# prepper(plot_code = 
+#     mtcars %>% 
+#     ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+#     geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear))
 ```
 
-## y2 - x - this one
+
+
+
+
+## Structure?
 ```{r}
+#| eval: false
+pplot <- mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear)
+
+extract_plot_vars(pplot)
+sty <- styler::style_text(substitute(mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +
+    labs(x = "something") +theme_minimal() +guides(fill = FALSE)
+  ))
+
+
+paste0(capture.output(str(pplot$data)), sep = "\n", collapse = "")
+```
+
+## Cure
+
+```{r}
+
+extract_plot_vars <- function(plot) {
+  aes_vars <- lapply(plot$mapping, function(aes) {
+    # Get the expression inside the aesthetic
+    expr <- rlang::quo_get_expr(aes)
+    
+    # Check if expr is a symbol (e.g., mpg)
+    if (rlang::is_symbol(expr)) {
+      rlang::as_string(expr)
+    } else if (rlang::is_call(expr)) {
+      # If it's a call (e.g., factor(cyl)), get the variable within the transformation
+      rlang::as_string(expr[[2]])
+    } else {
+      NA_character_
+    }
+  })
+  
+    facet_vars <- c()
+  if (!is.null(plot$facet$params$rows)) {
+    facet_vars <- c(facet_vars, names(plot$facet$params$rows))
+  }
+  if (!is.null(plot$facet$params$cols)) {
+    facet_vars <- c(facet_vars, names(plot$facet$params$cols))
+  }
+  
+  # Combine aesthetic and faceting variables
+  c(aes_vars, facet_vars)
+}
+
+
+capture_code <- function(expr) {
+  out <- eval(expr)  # Evaluate the plot expression
+  out$Code <- substitute(expr)
+  return(out)  # Return both the plot and the expression
+}
+
+
+archive_plot <- function(plot, filename, location = NULL, mask = FALSE) {
+  
+  plot_expr <- plot$Code
+  # plot_expr <- substitute(plot_code)
+  # plot <- eval(plot_expr)
+  
+  ## Only keep variables needed for plotting
+  plot_vars <- extract_plot_vars(plot) %>% unlist() %>% unname()
+  plot$data <-plot$data %>% select(all_of(plot_vars))
+  
+  ## Randomize data
+  if(isTRUE(mask)){
+    cat("All plotting data are randomized")
+  plot$data <-plot$data %>% mutate(across(everything(), sample))
+  } else if(length(intersect(mask, plot_vars))>0 ){
+    cat(paste0("The following variables have been randomized: ", toString(mask)))
+    plot$data <- plot$data %>% mutate(across(any_of(mask), sample))
+  }
+  
+  # Convert the expression to a string with preserved formatting
+  plot_code_str <- paste(deparse(plot_expr, width.cutoff = 500), collapse = "\n")
+  
+  # Use styler to format the code string
+  styled_code <- styler::style_text(plot_code_str)
+  
+  # structured_plot <- list(Plot = plot, Code = styled_code)
+  plot$Code <- styled_code
+  
+    if (!is.null(location)) {
+    if (dir.exists(location)) {
+      filename <- file.path(location, filename)
+    } else {
+      warning(paste("Directory does not exist:", location, "- saving to working directory."))
+    }
+  }
+  saveRDS(plot, file = filename)
+  
+  return(plot)
+}
 
 unpack_plot <- function(filename) {
   ggplot_with_code_obj <- readRDS(filename)
   
   # Display plot
-  print(ggplot_with_code_obj$Plot)
+  print(ggplot_with_code_obj)
   
-  return(ggplot_with_code_obj$Code)
+  cat("Data\n")
+  str(ggplot_with_code_obj$data)
+  
+  return(list(Code = ggplot_with_code_obj$Code))
+}
+
+
+
+pplot <- capture_code(mtcars %>% 
+    ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+    geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +
+      facet_grid(~gear))
+    
+archive_plot(pplot,
+  filename = "test.rds",
+  mask = FALSE)
+
+unpack_plot("test.rds")
+
+
+```
+
+
+
+```{r}
+#| eval: false
+
+glue_sh <- function(..., .envir = parent.frame(), .type = c("sh", "csh", "cmd", "cmd2")) {
+  .type <- match.arg(.type)
+  glue(..., .envir = .envir, .transformer = shell_transformer(.type))
+
+}
+
+shell_transformer <- function(type = c("sh", "csh", "cmd", "cmd2")) {
+  type <- match.arg(type)
+  function(text, envir) {
+    res <- identity_transformer(text, envir)
+    shQuote(res)
+  }
+}
+filename <- "test"
+writeLines(con = filename, sty)
+
+command <- glue_sh("cat {filename}")
+command
+#> cat 'test'
+system(command)
+
+filename <- "test"
+writeLines(con = filename, capture.output(str(pplot$data)))
+
+command <- glue_sh("cat {filename}")
+command
+#> cat 'test'
+system(command)
+
+X <- substitute(str(pplot$data))
+eval(X)
+```
+
+
+
+
+
+
+
+## new
+```{r}
+#| eval: false
+unpack_plot <- function(filename) {
+  ggplot_with_code_obj <- readRDS(filename)
+  
+  # Display plot
+  print(ggplot_with_code_obj$Plot)
+  STR <- substitute(permute_gg_cols(ggplot_with_code_obj$Plot) %>% str() )
+  
+  return(list(Code = ggplot_with_code_obj$Code, Data = eval(STR)))
 }
 
 unpack_plot("test.rds")
 
+pplot$data <-pplot$data %>% select(extract_plot_vars(pplot) %>% unlist() %>% unname())
+
+pplot$call <- sty
+
+str(pplot)
 ```
+
+
+
+
+
+
+## pipeable
+```{r}
+#| eval: false
+capture_plot_code <- function(plot_expr) {
+  plot <- eval(plot_expr)  # Evaluate the plot expression
+  plot$Code <- substitute(plot_expr)
+  return(plot)  # Return both the plot and the expression
+}
+
+
+archive_plot <- function(plot_code, filename, location = NULL) {
+  plot <- plot_code$Plot  # Extract the plot from the list
+  plot_code_str <- paste(deparse(plot_code$Code, width.cutoff = 500), collapse = "\n")  # Extract the code as a string
+  
+  # Use styler to format the code string
+  styled_code <- styler::style_text(plot_code_str)
+  
+  structured_plot <- list(Plot = plot, Code = styled_code)
+
+  if (!is.null(location)) {
+    if (dir.exists(location)) {
+      filename <- file.path(location, filename)
+    } else {
+      warning(paste("Directory does not exist:", location, "- saving to working directory."))
+    }
+  }
+
+  saveRDS(structured_plot, file = filename)
+
+  return(plot)
+}
+
+   capture_plot_code(mtcars %>% 
+    ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+    geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear))  %>% 
+  archive_plot(plot_code = .,
+  filename = "test.rds")
+```
+
+
 
 
 
 
 ## y  
 ```{r}
-
+#| eval: false
 load_and_display_plot <- function(filename) {
   # Load the custom object
   ggplot_with_code_obj <- readRDS(filename)
@@ -223,6 +496,7 @@ load_and_display_plot2("test.rds")
 
 ## y2 - sneak!
 ```{r}
+#| eval: false
 ggplot_with_code_obj <- readRDS("test.rds")
 
 unpack_plot <- function(filename) {
@@ -242,6 +516,7 @@ unpack_plot("test.rds") %>% cat(knitr::knit(text = ., quiet = TRUE))
 
 ## sneak
 ```{r}
+#| eval: false
 unpack_plot <- function(filename) {
   # Load the custom object
   ggplot_with_code_obj <- readRDS(filename)
@@ -266,6 +541,7 @@ cat(knitr::knit(text = k, quiet = TRUE))
 
 ## w  
 ```{r}
+#| eval: false
 ggplot_with_code_obj <- readRDS("test.rds")
 ggplot_with_code_obj <- readRDS("test.rds")
 ggplot_with_code_obj$Plot
@@ -279,6 +555,7 @@ cat(knitr::knit(text = k, quiet = TRUE))
 
 ## x
 ```{r}
+#| eval: false
 k <- c(ggplot_with_code_obj$Code)
 
 cat(knitr::knit(text = k, quiet = TRUE))
@@ -288,6 +565,7 @@ cat(knitr::knit(text = k, quiet = TRUE))
 
 ## x 2
 ```{r}
+#| eval: false
 k <- c(ggplot_with_code_obj$Code)
 
 cat(knitr::knit(text = k, quiet = TRUE))
@@ -297,6 +575,7 @@ cat(knitr::knit(text = k, quiet = TRUE))
 
 ## x23
 ```{r}
+#| eval: false
 k <- c(ggplot_with_code_obj$Code)
 ggplot_with_code_obj$Plot
 cat(knitr::knit(text = k, quiet = TRUE))
@@ -304,6 +583,7 @@ cat(knitr::knit(text = k, quiet = TRUE))
 
 ## x233
 ```{r}
+#| eval: false
 k <- c(ggplot_with_code_obj$Code)
 jreport(list(Plot = ggplot_with_code_obj$Plot,
 Code = capture.output(cat(knitr::knit(text = k, quiet = TRUE)))))
@@ -312,6 +592,7 @@ Code = capture.output(cat(knitr::knit(text = k, quiet = TRUE)))))
 ## x 3
 
 ```{r}
+#| eval: false
 #| results: asis
 #| 
 # Function to unpack and display the plot and formatted code
@@ -340,6 +621,7 @@ unpack_plot("test.rds")
 ```
 
 ```{r}
+#| eval: false
 library(qreport)
 
 # Function to unpack and display the plot and formatted code
