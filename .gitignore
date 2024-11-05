@@ -1,4 +1,4 @@
-<<<<<< HEAD
+
 .Rproj.user
 .Rhistory
 .Rproj.user
@@ -7,12 +7,10 @@
 dist/
 .cache.RData
 .Ruserdata
-=======
+
 archive/
 *.png
 
-# Ignore all HTML files
-*.html
 
 # Allow HTML files only in the docs directory
 !docs/
