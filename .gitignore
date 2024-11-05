@@ -11,6 +11,8 @@ dist/
 archive/
 *.png
 
+# Ignore all HTML files
+*.html
 
 # Allow HTML files only in the docs directory
 !docs/
