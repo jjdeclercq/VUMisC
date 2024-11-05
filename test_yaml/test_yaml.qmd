@@ -1,0 +1,387 @@
+---
+title: "lastfm"
+author:
+- Josh DeClercq
+date: today
+format:
+  html:
+    css: "styles.css" 
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+    dpi: 300
+toc-location: left
+toc-depth: 3
+execute:
+  echo: false
+  eval: true
+  warning: false
+number-sections: true
+code-fold: true
+callout-appearance: minimal
+self-contained: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+# devtools::install_github("ppatrzyk/lastfmR")
+require(lastfmR)
+require(googlesheets4)
+require(stringi)
+require(RCurl)
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+require(readxl)
+require(ggbeeswarm)
+library(scrobbler)
+library(httr)
+library(jsonlite)
+library(magick)
+require(tibble)
+require(glue)
+require(purrr)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
+```
+
+# Title
+
+## Subtitle
+
+```{r}
+table_id<- "butt"
+height = 500
+width = 500
+
+css <- glue::glue("
+    #{table_id} .gt_table {{
+      display: block;
+      height: {height}px;
+      width: {width}px;
+
+      overflow-y: scroll;
+      table-align: center !important;
+
+    }}
+    #{table_id} thead {{
+      position: sticky;
+      top: 0;
+      background-color: white;
+
+    }}
+
+    #{table_id} .gt_col_headings {{
+         border-top-style: none
+    }}
+
+  "
+                    )
+
+mtcars %>% gt(., id = "butt") %>%
+    opt_row_striping() %>%
+  opt_css(., css)%>%
+    gt::tab_options(table_body.hlines.color = "white",
+                    row.striping.background_color = "#fafafa",
+                    source_notes.font.size = 12,
+                    table.font.size = 12,
+                    heading.align = "left",
+                    column_labels.font.weight = 'bold',
+                    heading.title.font.size = 16,
+                    # table.border.top.color = "transparent",
+                    # table.border.top.width = px(2),
+                    # table.border.bottom.width = px(0),
+                    table.border.bottom.style = "none",
+                    table.border.top.style = "none",
+                    data_row.padding = px(4), table.align = "center") 
+
+mtcars  %>% jgt(, by = "cyl") %>%as_gt(., id = "butt") %>% 
+  opt_css(., css)
+ 
+
+mtcars  %>% jgt(, by = "cyl") %>% scrollify()
+
+mtcars %>% jgtt() %>%
+  opt_css(., css)
+```
+
+
+## Tabsets
+::: panel-tabset
+### Table
+```{r}
+mtcars %>% j.reactable()
+
+```
+
+### Plot
+```{r}
+#| fig-width: 5.3
+#| fig-height: 4.2
+#| fig-link: "plot1_300dpi2.png"
+#| fig-cap: "caption"
+#| 
+require(rvg)
+require(esquisse)
+require(officer)
+
+test_plot <- ggplot(mtcars) +
+  labs(x = "Horsey power", y = "Miles per gallon")+
+  geom_text(data = data.frame(b = 1), x = 120, y = 20, label = "Example of font problem", size = 12/.pt, inherit.aes = FALSE)+
+  geom_point(aes(x = hp, y = mpg, colour = factor(cyl))) + 
+  labs(title = "Bill length and depth relation by species") +
+  theme(plot.title = element_text(size = 15))
+
+# test_plot
+# 
+# ggsave("plot1_300dpi2.png", plot = test_plot, dpi = 300, units = "in")
+```
+
+
+```{r}
+#| results: asis
+
+k <- paste("", "```{r aaab}",
+"#| fig-link: 'plot1_300dpi2.png'","",
+"#| fig-cap: 'caption'","",
+
+"test_plot","","2+2",
+"```", "", sep = "\n")
+
+# cat(knitr::knit(text = k, quiet = TRUE))
+
+# cat("[![plot of chunk y butt](plot1_300dpi2.png)](plot1_300dpi2.png)")
+```
+
+
+## xx 
+
+```{r}
+#| results: asis
+#| fig-width: 7
+#| fig-height: 3
+
+require(qreport)
+
+kcat <- function(k){
+  cat(knitr::knit(text = k, quiet = TRUE))
+}
+
+# kcat(k)
+
+test_plot <- ggplot(mtcars) +
+  labs(x = "Horsey power", y = "Miles per gallon")+
+  geom_text(data = data.frame(b = 1), x = 120, y = 20, label = "Example of font problem", size = 12/.pt, inherit.aes = FALSE)+
+  geom_point(aes(x = hp, y = mpg, colour = factor(cyl))) + 
+  labs(title = "Bill length and depth relation by species") +
+  theme(plot.title = element_text(size = 15))
+
+jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI = 300, UNITS = "in",device = "png", ...){
+  
+  local.dir = "/figures"
+  
+  if(is.null(file.name)){
+  file.name <- paste0(deparse(substitute(figure)), ".",device)
+  }
+  
+  local.dir <- paste0(getwd(),"/figures")
+  
+  if(!dir.exists(local.dir)){
+    dir.create(local.dir)
+  }
+  
+   FN <- paste0(local.dir,"/",file.name)
+  
+  # Save file to local directory
+  ggsave(filename = FN, plot = figure, dpi = DPI, units = UNITS, device = device, ...) %>% suppressMessages()
+  
+  if(!is.null(publish.dir)){
+    publish.dir <- paste0(publish.dir,"/figures")
+    
+     if(!dir.exists(publish.dir)){
+          dir.create(publish.dir)
+     }
+    
+    file.copy(FN, paste0(publish.dir,"/",file.name), overwrite = TRUE)
+    
+     }
+  
+  FNx <- paste0("figures/",file.name)
+  
+  
+  
+    if(!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))){
+    cat(paste0("[![",CAP, "](",FNx,")](",FNx,")\n"))
+  } else {
+    figure
+  }
+}
+
+jjsave(test_plot, publish.dir = "../pub_test", device = "jpeg")
+
+```
+
+
+
+
+```{r}
+#| fig-width: 5.3
+#| fig-height: 4.2
+
+
+library(magick)
+
+# Load the image
+img <- image_read("download.png")
+
+# Get image information
+info <- image_info(img)
+
+# View the details
+print(info)
+
+```
+:::
+
+# Download
+cat("2. [Download Plot 2 (300 DPI)](AoigA.png)\n")
+
+
+```{r}
+read_csv("/Users/joshdeclercq/Downloads/CPIAUCSL.csv", col_select = 1:5) %>% filter(!is.na(inf)) %>% mutate(DATE = mdy(DATE)) %>% 
+  ggplot(., aes(x = DATE)) +
+  geom_point(aes(y = sal), colour= "blue")+
+  geom_point(aes(y = adj), colour= "red")
+```
+
+
+# Alt
+::: {#fig-albums layout-nrow=8}
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3e35fd38afec558d7ecf74aba7cc7e1a.jpg" width="100px" tooltip="tip">
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/ef42d5f5bcd2e7e64e07f2aad7beb950.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3e35fd38afec558d7ecf74aba7cc7e1a.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/975663a652bf4e6c9373c8b2848f9303.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/3515cb4917515a809e5047db720bb1f6.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/d2cf06157ec57bd0a86306aa39ad59ab.jpg" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/e6e115d68486dcde60f3c4ac69526d6f.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/6bae4cacc179713429c2e72b872ca178.png" width="100px"  tooltip="tip"> 
+<img src="https://lastfm.freetls.fastly.net/i/u/174s/1fd78f809b2fa11299f7dbf80ad2ef5c.jpg" width="100px"  tooltip="tip">
+:::
+# Other
+```{r}
+library(officer)
+library(ggplot2)
+library(rvg)  # Required for dml_pptx
+
+ggplot_to_ppt_custom <- function(test_plot, HT = 6, WD = 8, EDIT = TRUE) {
+  
+  # Define the output file path (saved in the working directory)
+  ppt_file <- file.path(getwd(), "ppt_fig.pptx")
+  
+  # Create a new PowerPoint object
+  ppt <- officer::read_pptx()
+  
+  # Add a slide with "Title and Content" layout from "Office Theme"
+  ppt <- officer::add_slide(ppt, layout = "Title and Content", master = "Office Theme")
+  
+  # Ensure the plot is valid before adding it
+  testgg <- try(invisible(ggplot2::ggplot_build(test_plot)), silent = TRUE)
+  
+  if (!"try-error" %in% class(testgg)) {
+    
+    # Add the plot to the slide using dml (editable graphics)
+    ppt <- officer::ph_with(
+      ppt, 
+      rvg::dml(code = print(test_plot), 
+               editable = EDIT  # Keep it editable in PowerPoint
+      ), 
+      location = officer::ph_location(width = WD, height = HT, newlabel = "hello")  # Set width and height for the plot
+    )
+  }
+  
+  # Save the PowerPoint file in the working directory with the specified name
+  print(ppt, target = ppt_file)
+  
+  # Open the PowerPoint file
+  browseURL(ppt_file)
+}
+
+# Example usage
+p <- ggplot(mtcars, aes(mpg, hp)) + geom_point()
+# ggplot_to_ppt_custom(test_plot, EDIT= FALSE)
+
+
+```
+
+
+
+:::
+
+
+```{r}
+#| results: asis
+library(gt)
+library(htmltools)
+
+# Sample gt table
+tbl <- gt(mtcars)
+
+# Add custom HTML button and JavaScript to copy the table
+gt_with_button <- function(tbl) {
+  
+  # Convert gt table to HTML
+  tbl_html <- as.character(tbl)
+  
+  # Define button and JavaScript
+  button_and_js <- tags$div(
+    tags$button("Copy Table", id = "copy-btn", onclick = "copyTableToClipboard()"),
+    tags$script(HTML(
+      "
+      function copyTableToClipboard() {
+        var range = document.createRange();
+        var table = document.querySelector('table');  // Select the gt table
+        range.selectNode(table);  // Select the table element
+        window.getSelection().removeAllRanges();  // Clear any existing selection
+        window.getSelection().addRange(range);  // Add the table to the selection
+        document.execCommand('copy');  // Execute the copy command
+        window.getSelection().removeAllRanges();  // Clear the selection after copying
+        alert('Table copied to clipboard');
+      }
+      "
+    ))
+  )
+  
+  # Combine the button and the gt table
+  browsable(tagList(button_and_js, HTML(tbl_html)))
+}
+
+# Render the table with the button
+gt_with_button(tbl)
+
+```
+
+
+

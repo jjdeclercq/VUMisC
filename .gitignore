@@ -1,4 +1,20 @@
+<<<<<< HEAD
+.Rproj.user
+.Rhistory
 .Rproj.user
 .Rhistory
 .RData
+dist/
+.cache.RData
 .Ruserdata
+=======
+archive/
+*.png
+
+# Ignore all HTML files
+*.html
+
+# Allow HTML files only in the docs directory
+!docs/
+!docs/*.html
+>>>>>>> vumisc/main
