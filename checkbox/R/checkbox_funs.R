@@ -17,12 +17,12 @@ gen_checkbox_df <- function(ids, reps, by.var = c("Site A", "Site B"),  n.boxes 
     "2",      "Rat",
     "3",      "Cat",
     "4",      "Dog",
-    "5",   "Donkey",
+    "5",   "Snake",
     "6",   "Monkey",
     "7",   "Turtle",
-    "8", "Hedgehog",
+    "8", "Lizard",
     "9", "Blue jay",
-    "10",    "Rhino",
+    "10",    "Turkey",
     "11",    "Other",
     "12",     "None")
 
@@ -283,4 +283,21 @@ checkbox_intersect <- function(dat, selection, id.var, repeat.var = NULL, toggle
     mutate(across(everything(), ~ifelse(.x == "Yes", 1, 0))) %>%
     as.data.frame() %>% UpSetR::upset(., nsets = 20, nintersects = 30)
 
+}
+
+checkbox_merge <- function(dat, selection, list_vars){
+
+  for(i in 1:length(list_vars)){
+
+    new_var <- paste0(selection, "m",paste0(unlist(list_vars[i]), collapse = ""))
+    merge_vars <- paste0(selection, paste0(unlist(list_vars[i])))
+
+    dat[,new_var] <- ifelse(rowSums(!is.na(dat[,merge_vars]))>0, names(list_vars)[i], NA)
+
+    Hmisc::label(dat[[new_var]]) <- names(list_vars)[i]
+
+    dat <- dat %>% select(-any_of(merge_vars))
+  }
+
+  dat %>% clear.label.class()
 }

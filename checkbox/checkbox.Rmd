@@ -71,12 +71,12 @@ cb <- set_label( cb ,
  checkbox_2 = 'Rat',
  checkbox_3 = 'Cat',
  checkbox_4 = 'Dog',
- checkbox_5 = 'Donkey',
+ checkbox_5 = 'Snake',
  checkbox_6 = 'Monkey',
  checkbox_7 = 'Turtle',
- checkbox_8 = 'Hedgehog',
+ checkbox_8 = 'Lizard',
  checkbox_9 = 'Blue jay',
- checkbox_10 = 'Rhino',
+ checkbox_10 = 'Turkey',
  checkbox_11 = 'Other',
  checkbox_12 = 'None')
 
@@ -89,12 +89,12 @@ c1 <- set_label( c1 ,
  checkbox_2 =  'What animals did you see? (choice=Rat)',
  checkbox_3 =  'What animals did you see? (choice=Cat)',
  checkbox_4 =  'What animals did you see? (choice=Dog)',
- checkbox_5 =  'What animals did you see? (choice=Donkey)',
+ checkbox_5 =  'What animals did you see? (choice=Snake)',
  checkbox_6 =  'What animals did you see? (choice=Monkey)',
  checkbox_7 =  'What animals did you see? (choice=Turtle)',
- checkbox_8 =  'What animals did you see? (choice=Hedgehog)',
+ checkbox_8 =  'What animals did you see? (choice=Lizard)',
  checkbox_9 =  'What animals did you see? (choice=Blue jay)',
- checkbox_10 = 'What animals did you see? (choice=Rhino)',
+ checkbox_10 = 'What animals did you see? (choice=Turkey)',
  checkbox_11 = 'What animals did you see? (choice=Other)',
  checkbox_12 = 'What animals did you see? (choice=None)')
 
@@ -107,12 +107,12 @@ c2 <- set_label( c1 ,
  checkbox_2 =  'Some string that does not fit the pattern: Rat',
  checkbox_3 =  'Some string that does not fit the pattern: Cat',
  checkbox_4 =  'Some string that does not fit the pattern: Dog',
- checkbox_5 =  'Some string that does not fit the pattern: Donkey',
+ checkbox_5 =  'Some string that does not fit the pattern: Snake',
  checkbox_6 =  'Some string that does not fit the pattern: Monkey',
  checkbox_7 =  'Some string that does not fit the pattern: Turtle',
- checkbox_8 =  'Some string that does not fit the pattern: Hedgehog',
+ checkbox_8 =  'Some string that does not fit the pattern: Lizard',
  checkbox_9 =  'Some string that does not fit the pattern: Blue jay',
- checkbox_10 = 'Some string that does not fit the pattern: Rhino',
+ checkbox_10 = 'Some string that does not fit the pattern: Turkey',
  checkbox_11 = 'Some string that does not fit the pattern: Other',
  checkbox_12 = 'Some string that does not fit the pattern: None')
 
@@ -424,6 +424,73 @@ Excluding `repeat.var` with repeating data will greatly increase the number of i
 checkbox_intersect(cb %>% select(1:7), "checkbox", id.var = "id", add.zero = TRUE)
 ```
 
+# checkbox_merge
+
+To collapse checkboxes into fewer categories, or rename existing fields `checkbox_merge` can be used to prepare data for any of the preceding functions. 
+
+This function has three arguments: `dat` and `selection` that match the arguments of the other functions. Whereas in the other functions for `selection` you can use "checkbox" or "checkb" so long as it is unique to the column names in the dataset. However, in this function `selection` needs to match the entire prefix ("checkbox_"). 
+
+`list_vars` is a named list. The names are what you want the combined data to be relabelled as, and the values of the list are the suffixes of the fields that you want to merge. 
+
+## simple output
+```{r echo = TRUE}
+checkbox_merge(c1, "checkbox_", 
+               list("Mammal" = c(1,2, 3, 4, 6),
+                    "Reptile" = c(5, 7, 8),
+                    "Bird" = c(9, 10))) %>% head(., 10) %>% jgtt()
+```
+
+
+## Relabeling
+
+To relabel a single column, just add the suffix to the list 2 times: 
+
+```{r echo = TRUE}
+checkbox_merge(c1, "checkbox_", 
+               list("Mammal" = c(1,2, 3, 4, 6),
+                    "Reptile" = c(5, 7, 8),
+                    "Bird" = c(9, 10),
+                    "Fish or amphibian" = c(11, 11),
+                    "None" = c(12,12))) %>% head(., 10) %>% jgtt()
+```
+
+## with checkbox_tally
+```{r echo = TRUE}
+checkbox_merge(c1, "checkbox_", 
+               list("Mammal" = c(1,2, 3, 4, 6),
+                    "Reptile" = c(5, 7, 8),
+                    "Bird" = c(9, 10),
+                    "Fish or amphibian" = c(11, 11),
+                    "None" = c(12,12))) %>% 
+checkbox_tally(., "checkbox", id.var = "id", by.var = "site", add.zero = FALSE, 
+               col.name = "Animal", spanner.size = 2, spanner.text = "Site" )
+```
+
+## with checkbox_intersect
+```{r echo = TRUE}
+checkbox_merge(c1, "checkbox_", 
+               list("Mammal" = c(1,2, 3, 4, 6),
+                    "Reptile" = c(5, 7, 8),
+                    "Bird" = c(9, 10),
+                    "Fish or amphibian" = c(11, 11),
+                    "None" = c(12,12))) %>% checkbox_intersect(., "checkbox", "id")
+```
+
+## with checkbox_gather
+
+Use of `checkbox_merge` on just a subset of columns may result in irregular labeling that might be difficult or impossible to handle with the current implementation of `checkbox_gather`. If that's the case, then use `checkbox_merge` on all columns.
+
+```{r echo = TRUE}
+checkbox_merge(c1, "checkbox_", 
+               list("Mammal" = c(1,2, 3, 4, 6),
+                    "Reptile" = c(5, 7, 8),
+                    "Bird" = c(9, 10),
+                    "Fish or amphibian" = c(11, 11),
+                    "None" = c(12,12))) %>%
+checkbox_gather(., "checkbox", id.var = "id", by.var = "site", add.zero = FALSE, remove.zero.selected = TRUE, 
+                simple.names = TRUE, toggle.names = TRUE, reorder.cols = TRUE)
+```
+
 
 # Next steps
 
@@ -432,7 +499,7 @@ The above suite of functions could be the start of a new R package, but I've nev
   - Using ChatGPT to add error checking to functions
   - ChatGPT can also take a decent stab at getting roxygen comments started
   - `devtools::create("checkbox")` creates the requisite folders and files
-  - Need to reoranize .R file and then run `roxygen2::roxygenise()`
+  - Need to reorganize .R file and then run `roxygen2::roxygenise()`
   - Help files are created for each function
 
 
