@@ -844,6 +844,7 @@ rca_dictionary <- function(rcon, included.ids = del$record_id, id.var = "record_
   
   missing_summary %<>% 
     separate_rows(., "missing", sep = ",") %>%
+    mutate(missing = trimws(missing)) %>%
     group_by(!!sym(id.var), missing) %>%
     summarise(x =  ifelse(is.na(rv), NA, toString(rv))) %>%
     distinct() %>%
