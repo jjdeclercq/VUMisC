@@ -905,6 +905,16 @@ date_dists <- function(dat, included.ids = NULL, id.var = "record_id", n_include
     mutate(variable = paste0(label, "(", variable, ") [N = ",n, "]"))
 }
 
+print.work.logs <- function(proj){
+  work.logs <- readxl::read_xlsx("/Users/joshdeclercq/Library/CloudStorage/OneDrive-VUMC/Work logs/work log.xlsx", sheet = "Todo")
+  
+  res <- work.logs %>% filter(project == proj) %>%
+    select(date, request, "date done") %>%
+    jgtt() %>% tab_header("Summary of project requests") 
+  
+  return(res)
+  
+}
 
 
 archive <- function(DAT){
