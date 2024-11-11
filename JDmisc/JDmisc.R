@@ -1373,12 +1373,19 @@ jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI
   }
 }
 
-jj_index <- function(dat, qmd, omit = ""){
+jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___"){
   
   if(is.data.frame(dat)){dat = list(dat)}
   
   vars <- map(dat, ~setdiff(names(.x), omit)) %>% unlist() %>% unique()
   labs <-  map(dat, collect.labels) %>% list_rbind()
+  chkbx <- labs %>% separate("variable",c("a","b"), sep = checkbox_sep) %>% group_by(a) %>% 
+    filter(sum(!is.na(b))>1) %>% 
+    mutate(label = sub("\\(.*", "", label)) %>% 
+    select(-b) %>% distinct()
+  vars <- c(vars, chkbx$a)
+  
+  labs <- bind_rows(labs, chkbx)
   
   prp <- parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
     mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
