@@ -800,6 +800,35 @@ session_info <- function(rmd_file){
   
 }
 
+save_session_info <- function(rmd_file, path = "session_info.R"){
+  knitr::purl(rmd_file, path, documentation = 2, quiet = TRUE)
+}
+
+print_session_info <- function(path = "session_info.R"){
+  
+  ## Gets parse data 
+  tmp <- getParseData(parse(path, keep.source=TRUE))
+  
+  ## formats output
+  tmp %>% 
+    filter(token %in% c("SPECIAL", "SYMBOL_FUNCTION_CALL") ) %>% 
+    group_by(text) %>% 
+    tally() %>% 
+    rowwise() %>%
+    mutate(f = toString(find(text))) %>% 
+    separate_rows(.,f, sep = ",") %>% 
+    mutate(f = trimws(gsub("package:", "", f), "both")) %>% 
+    group_by(f) %>% 
+    summarise(n = n(), funs = toString(text)) %>% 
+    filter(funs != "%>%") %>% 
+    rowwise() %>%
+    mutate(version = tryCatch(as.character(packageVersion(f)), error=function(e) "NA")) %>% 
+    select(package = f, version, n, funs) %>% 
+    arrange(desc(n)) %>%
+    jgtt() %>% 
+    tab_source_note(., paste0("Current as of ", file.mtime("session_info.R")))
+  
+}
 rca_checkbox_fix <- function(rcon, rdat){
   
   checkbox_prefixes <- rcon$metadata() %>% 
