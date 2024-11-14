@@ -1408,11 +1408,11 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALS
   
   vars <- map(dat, ~setdiff(names(.x), omit)) %>% unlist() %>% unique()
   labs <-  map(dat, collect.labels) %>% list_rbind() %>% mutate(label = ifelse(label == "", variable, label))
-  chkbx <- labs %>% separate("variable",c("a","b"), sep = checkbox_sep, fill = "right") %>% group_by(a) %>% 
+  chkbx <- labs %>% separate("variable",c("variable","b"), sep = checkbox_sep, fill = "right") %>% group_by(variable) %>% 
     filter(sum(!is.na(b))>1) %>% 
     mutate(label = sub("\\(.*", "", label)) %>% 
     select(-b) %>% distinct()
-  vars <- c(vars, chkbx$a)
+  vars <- c(vars, chkbx$variable)
   
   labs <- bind_rows(labs, chkbx)
   
@@ -1426,16 +1426,18 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALS
     prp %<>% mutate(y = ifelse(grepl(vars[i], x), paste(vars[i], y, sep = ", "), y))
   }
   
+  toc <- get_toc(qmd)%>% 
+    separate(title, into = c("title", "slug"), sep = "{#", fill = "right") %>% 
+    mutate(slug = gsub("\\}.*$", "", slug)) %>% tidyr::fill(slug, .direction = "down") 
+  
+  
   ndf <- prp %>% select(order, y) %>% separate_rows(y, sep = ", ") %>% 
     filter(y != "") %>% 
     left_join(., labs, by = c("y"= "variable")) %>% 
-    left_join(., get_toc(qmd), by = "order")  %>% 
-    separate(title, into = c("title", "slug"), sep = "{#", fill = "right") %>% 
-    mutate(slug = gsub("\\}.*$", "", slug)) %>% tidyr::fill(slug, .direction = "down")%>% 
+    left_join(.,toc , by = "order") %>% 
     mutate(c_link = glue::glue('<a href="#{slug}" class="quarto-xref" aria-expanded="false">§{section}</a>') )
   
   if(isTRUE(crosslink)){ndf$section <- ndf$c_link}
-  
   
   ndf <- ndf %>%
     group_by(y, label) %>%
