@@ -1402,13 +1402,13 @@ jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI
   }
 }
 
-jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___"){
+jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALSE){
   
   if(is.data.frame(dat)){dat = list(dat)}
   
   vars <- map(dat, ~setdiff(names(.x), omit)) %>% unlist() %>% unique()
-  labs <-  map(dat, collect.labels) %>% list_rbind()
-  chkbx <- labs %>% separate("variable",c("a","b"), sep = checkbox_sep) %>% group_by(a) %>% 
+  labs <-  map(dat, collect.labels) %>% list_rbind() %>% mutate(label = ifelse(label == "", variable, label))
+  chkbx <- labs %>% separate("variable",c("a","b"), sep = checkbox_sep, fill = "right") %>% group_by(a) %>% 
     filter(sum(!is.na(b))>1) %>% 
     mutate(label = sub("\\(.*", "", label)) %>% 
     select(-b) %>% distinct()
@@ -1428,8 +1428,19 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___"){
   
   ndf <- prp %>% select(order, y) %>% separate_rows(y, sep = ", ") %>% 
     filter(y != "") %>% 
-    left_join(., get_toc(qmd), by = "order") %>% 
-    left_join(., labs, by = c("y"= "variable"))
+    left_join(., labs, by = c("y"= "variable")) %>% 
+    left_join(., get_toc(qmd), by = "order")  %>% 
+    separate(title, into = c("title", "slug"), sep = "{#", fill = "right") %>% 
+    mutate(slug = gsub("\\}.*$", "", slug)) %>% tidyr::fill(slug, .direction = "down")%>% 
+    mutate(c_link = glue::glue('<a href="#{slug}" class="quarto-xref" aria-expanded="false">§{section}</a>') )
+  
+  if(isTRUE(crosslink)){ndf$section <- ndf$c_link}
+  
+  
+  ndf <- ndf %>%
+    group_by(y, label) %>%
+    rename(variable = y) %>% distinct() %>%
+    summarise(sections = toString(section))
   
   return(ndf)
   
@@ -1462,6 +1473,83 @@ jpub <- function(qmd, output, directory){
   # # Quarto does not yet support rendering to different directory -- bleh
   file.copy(from = orig, to = paste0(directory,"/",of), overwrite = TRUE)
   file.copy(from = orig, to = paste0(local.dir,"/",of), overwrite = TRUE)
+}
+
+slugify <- function(text) {
+  text <- tolower(text)
+  text <- gsub(" ", "-", text)
+  text <- gsub("[^a-z0-9-]", "", text)
+  return(text)
+}
+
+process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
+  # If we're inside a code chunk or a tabbed section, return the line as is
+  if (inside_chunk || inside_tabset) {
+    return(list(line = line, used_slugs = used_slugs))
+  }
+  
+  # Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+  if (grepl("^#{1,6} +[^#]", line)) {
+    # Extract the header text and trim whitespace
+    header_text <- trimws(gsub("^#{1,6} +", "", line))
+    # Generate the slug
+    slug <- slugify(header_text)
+    # Ensure the slug is unique
+    original_slug <- slug
+    i <- 1
+    while (slug %in% used_slugs) {
+      i <- i + 1
+      slug <- paste0(original_slug, "-", i)
+    }
+    # Add the slug to the set of used slugs
+    used_slugs <- c(used_slugs, slug)
+    # Add the cross-reference if it doesn't already exist
+    if (!grepl("\\{#.*\\}$", line)) {
+      line <- paste0(line, " {#", slug, "}")
+    }
+  }
+  return(list(line = line, used_slugs = used_slugs))
+}
+
+
+add_cross_links <- function(input_file, output_file = input_file) {
+  # Read the content of the Quarto Markdown file
+  lines <- readLines(input_file)
+  
+  # Create binary vectors to track if we're inside a code chunk or a tabbed section
+  in_code_chunk <- rep(FALSE, length(lines))
+  in_tabset <- rep(FALSE, length(lines))
+  
+  # Track if we are in a code chunk or a tabbed section
+  inside_code_chunk <- FALSE
+  inside_tabset <- FALSE
+  for (i in seq_along(lines)) {
+    if (grepl("^```", lines[i])) {
+      inside_code_chunk <- !inside_code_chunk
+    }
+    in_code_chunk[i] <- inside_code_chunk
+    
+    if (grepl("^::: panel-tabset", lines[i])) {
+      inside_tabset <- TRUE
+    } else if (grepl("^:::", lines[i]) && inside_tabset) {
+      inside_tabset <- FALSE
+    }
+    in_tabset[i] <- inside_tabset
+  }
+  
+  # Track used slugs to ensure uniqueness
+  used_slugs <- character(0)
+  
+  # Process each line and update used slugs
+  processed_lines <- character(length(lines))
+  for (i in seq_along(lines)) {
+    result <- process_line(lines[i], in_code_chunk[i], in_tabset[i], used_slugs)
+    processed_lines[i] <- result$line
+    used_slugs <- result$used_slugs
+  }
+  
+  # Write the modified content back to the file
+  writeLines(processed_lines, output_file)
 }
 
 
