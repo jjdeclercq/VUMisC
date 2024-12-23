@@ -1501,7 +1501,7 @@ process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
     i <- 1
     while (slug %in% used_slugs) {
       i <- i + 1
-      slug <- paste0(original_slug, "-", i)
+      slug <- paste0(original_slug, "_v", i)
     }
     # Add the slug to the set of used slugs
     used_slugs <- c(used_slugs, slug)
