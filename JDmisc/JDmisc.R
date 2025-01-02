@@ -1492,21 +1492,26 @@ process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
   
   # Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
   if (grepl("^#{1,6} +[^#]", line)) {
-    # Extract the header text and trim whitespace
-    header_text <- trimws(gsub("^#{1,6} +", "", line))
-    # Generate the slug
-    slug <- slugify(header_text)
-    # Ensure the slug is unique
-    original_slug <- slug
-    i <- 1
-    while (slug %in% used_slugs) {
-      i <- i + 1
-      slug <- paste0(original_slug, "_v", i)
-    }
-    # Add the slug to the set of used slugs
-    used_slugs <- c(used_slugs, slug)
-    # Add the cross-reference if it doesn't already exist
-    if (!grepl("\\{#.*\\}$", line)) {
+    # Extract existing slug if present
+    existing_slug <- regmatches(line, regexpr("\\{#([^}]*)\\}$", line))
+    if (length(existing_slug) > 0) {
+      # Remove curly braces and add to used_slugs
+      used_slugs <- c(used_slugs, gsub("\\{#([^}]*)\\}$", "\\1", existing_slug))
+    } else {
+      # Extract the header text and trim whitespace
+      header_text <- trimws(gsub("^#{1,6} +", "", line))
+      # Generate the slug
+      slug <- paste0(slugify(header_text), "-",Sys.Date())
+      # Ensure the slug is unique
+      original_slug <- slug
+      i <- 1
+      while (slug %in% used_slugs) {
+        i <- i + 1
+        slug <- paste0(original_slug, "_x_", i)
+      }
+      # Add the slug to the set of used slugs
+      used_slugs <- c(used_slugs, slug)
+      # Add the cross-reference
       line <- paste0(line, " {#", slug, "}")
     }
   }
