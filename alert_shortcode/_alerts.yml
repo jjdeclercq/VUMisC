@@ -1,0 +1,17 @@
+alerts_list:
+  test:
+    title: "Important Notice"
+    type: "tip"
+    content: "This is a critical alert."
+  test2:
+    title: "FYI"
+    type: "info"
+    content: "This is just an informational message."
+    icon: false
+  test3: 
+    title: "TIP"
+    type: "tip"
+    content: "Just the tip."
+    collapse: true
+
+

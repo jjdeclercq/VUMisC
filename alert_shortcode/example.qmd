@@ -1,0 +1,55 @@
+---
+title: "Alert Example"
+crossref:
+  custom:
+    - kind: float
+      reference-prefix: Alert
+      key: ale
+      caption-location: top
+metadata-files: 
+  - _alerts.yml
+
+---
+
+## Heading?
+
+
+
+:::{#ale-x}
+{{< alert "test" >}}
+:::
+
+
+
+@ale-x
+
+
+::: {#tip-example .callout-tip collapse="true"}
+## Cross-Referencing a Tip
+
+Add an ID starting with `#tip-` to reference a tip.
+:::
+
+
+@tip-example
+```{r}
+require(tidyverse)
+parsermd::parse_rmd("example.qmd") |> as.data.frame() |> pull(ast) %>% parsermd::as_document() %>% print()
+    mutate(order = cumsum(type == "rmd_heading")) |> rowwise() |> 
+    mutate(x = ifelse(type == "rmd_chunk", paste0(parsermd::as_document(ast), collapse = ""), "")) 
+```
+
+
+```{r}
+#| eval: false
+
+
+readLines("_alerts.yml") %>% print()
+
+'  test3:'
+'    title: '
+'    type: '
+'    content: '
+'    collapse: true'
+```
+
