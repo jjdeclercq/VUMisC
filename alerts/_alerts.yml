@@ -1,0 +1,11 @@
+alerts:
+  alert1:
+    title: "Important Notice"
+    type: "warning"
+    content: "This is a critical alert."
+  alert2:
+    title: "Update Available"
+    type: "note"
+    content: "A new version of the software is available."
+
+

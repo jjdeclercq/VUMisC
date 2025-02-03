@@ -1,0 +1,31 @@
+title: "Alerts"
+author:
+- Josh DeClercq
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: true
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+callout-appearance: minimal
+self-contained: true
+---
