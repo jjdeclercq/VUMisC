@@ -1402,19 +1402,26 @@ jjsave <- function(figure, file.name = NULL , publish.dir = NULL,CAP = NULL, DPI
   }
 }
 
-jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALSE){
+jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALSE, src.dat = NULL){
   
   if(is.data.frame(dat)){dat = list(dat)}
   
   vars <- map(dat, ~setdiff(names(.x), omit)) %>% unlist() %>% unique()
   labs <-  map(dat, collect.labels) %>% list_rbind() %>% mutate(label = ifelse(label == "", variable, label))
-  chkbx <- labs %>% separate("variable",c("variable","b"), sep = checkbox_sep, fill = "right") %>% group_by(variable) %>% 
+  chkbx <- labs %>% separate("variable",c("variable","b"), sep = checkbox_sep, fill = "right") %>% 
+    group_by(variable) %>% 
     filter(sum(!is.na(b))>1) %>% 
     mutate(label = sub("\\(.*", "", label)) %>% 
     select(-b) %>% distinct()
   vars <- c(vars, chkbx$variable)
   
   labs <- bind_rows(labs, chkbx)
+  
+  if(!is.null(src.dat)){
+    labs <- labs %>% mutate(derived = ifelse(variable %in% names(src.dat), "", "Yes"))
+  }
+  
+  
   
   prp <- parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
     mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
@@ -1431,17 +1438,18 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALS
     mutate(slug = gsub("\\}.*$", "", slug)) %>% tidyr::fill(slug, .direction = "down") 
   
   
-  ndf <- prp %>% select(order, y) %>% separate_rows(y, sep = ", ") %>% 
-    filter(y != "") %>% 
-    left_join(., labs, by = c("y"= "variable")) %>% 
+  ndf <- prp %>% select(order, variable = y) %>% separate_rows(variable, sep = ", ") %>% 
+    filter(variable != "") %>% 
+    left_join(., labs, by = c("variable")) %>% 
     left_join(.,toc , by = "order") %>% 
     mutate(c_link = glue::glue('<a href="#{slug}" class="quarto-xref" aria-expanded="false">§{section}</a>') )
   
   if(isTRUE(crosslink)){ndf$section <- ndf$c_link}
   
+  
   ndf <- ndf %>%
-    group_by(y, label) %>%
-    rename(variable = y) %>% distinct() %>%
+    {if(!is.null(src.dat)) group_by(., variable, label, derived) else group_by(., variable, label)} %>%
+    distinct() %>%
     summarise(sections = toString(section))
   
   return(ndf)
