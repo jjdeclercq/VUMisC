@@ -5,7 +5,7 @@ _TODO_: Add a short description of your extension.
 ## Installing
 
 ```bash
-quarto add VUMisC/alert_shortcode
+quarto add jjdeclercq/VUMisC/alert_shortcode
 ```
 
 This will install the extension under the `_extensions` subdirectory.
