@@ -59,7 +59,8 @@ require(purrr)
 require(qreport)
 
 
-devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/main/JDmisc.R")
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/heads/main/JDmisc/JDmisc.R")
+
 ```
 
 
@@ -213,31 +214,19 @@ permute_cols <- function(data, vars){
 ```
 
 
+# Archiving plots
 
+Goals:
 
-
-## Structure?
-```{r}
-#| eval: false
-pplot <- mtcars %>% 
-  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
-  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear)
-
-extract_plot_vars(pplot)
-sty <- styler::style_text(substitute(mtcars %>% 
-  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
-  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +
-    labs(x = "something") +theme_minimal() +guides(fill = FALSE)
-  ))
-
-
-paste0(capture.output(str(pplot$data)), sep = "\n", collapse = "")
-```
-
-## Cure
+  - Create a repository of plots as a reference guide or source of inspiration for others
+  - Show code alongside plot
+  - Include structure of data
+  - Optional: permute/ mask data for sensitive plots
+  - Easy to implement
+  - Non-intrusive for existing code and reports
+  - Scalable
 
 ```{r}
-
 extract_plot_vars <- function(plot) {
   aes_vars <- lapply(plot$mapping, function(aes) {
     # Get the expression inside the aesthetic
@@ -325,23 +314,139 @@ unpack_plot <- function(filename) {
   
   return(list(Code = ggplot_with_code_obj$Code))
 }
+```
 
-
-
+## Original plot
+```{r}
 pplot <- capture_code(mtcars %>% 
     ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
     geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +
       facet_grid(~gear))
-    
+
+pplot
+```
+
+## Archive plot
+```{r}
 archive_plot(pplot,
   filename = "test.rds",
-  mask = FALSE)
+  mask = "disp")
+```
 
+## Unpacked plot
+```{r}
 unpack_plot("test.rds")
+getwd()
+```
 
+
+## Discussion
+
+  - Does the workflow make sense?
+  - Tried and failed to get a prettier output of data structure and code. Originally wanted the Data and Code to be in auto-generated tabs. Other suggestions?
+  - How to implement for a group? Github/ gitlab
+
+
+
+
+
+# Alerts
+
+::: {.callout-important}
+Objective: dynamically create, update and log alerts within a markdown document
+:::
+
+Idea:
+
+  - Function to create a blank alert
+  - Function to format and print alerts for html report
+  - Alerts should be easy to update and move around report
+  - Log alerts, status, date, resolution, etc.
+  - Formatted summary table
+  - Alert tracker with summary of status checks
+  
+How to implement? 
+
+  - Quarto extensions??
+  
+```{r}
+# Alert
+# @id 001
+# @status alert
+# @type caution
+# @notes Data missing in section 2.
+# @created 2025-01-03
+# @resolved N/A
+# @resolution Pending data collection.
+
+# Alert
+# @id 002
+# @status alert
+# @type caution
+# @notes Final results pending futher discussion.
+# @created 2025-01-03
+# @resolved N/A
+# @resolution Pending data collection.
+
+# parse_alert_metadata("archive_plot.qmd")
 
 ```
 
+```{r}
+# Function to parse alert metadata
+parse_alert_metadata <- function(file_path) {
+  lines <- readLines(file_path)
+  metadata <- list()
+  current <- list()
+  
+  for (line in lines) {
+    if (grepl("^# @", line)) {
+      key_value <- strsplit(sub("^# @", "", line), "\\s+", fixed = TRUE)[[1]]
+      current[[key_value[1]]] <- paste(key_value[-1], collapse = " ")
+    } else if (grepl("^#", line) == FALSE && length(current) > 0) {
+      # End of metadata block
+      metadata <- append(metadata, list(current))
+      current <- list()
+    }
+  }
+  
+  # Append the last block if it exists
+  if (length(current) > 0) metadata <- append(metadata, list(current))
+  
+  # Convert to a data frame
+  metadata_df <- do.call(rbind, lapply(metadata, as.data.frame))
+  return(metadata_df)
+}
+```
+
+
+
+
+```{r}
+
+# parse_alert_metadata("archive_plot.qmd")
+
+```
+
+
+
+## Structure?
+```{r}
+#| eval: false
+pplot <- mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +facet_grid(~gear)
+
+extract_plot_vars(pplot)
+sty <- styler::style_text(substitute(mtcars %>% 
+  ggplot(.,aes(x = mpg, y = disp, colour = factor(cyl))) + 
+  geom_point() +theme_minimal() +labs(x = "MPG", y = "DISP") +
+    labs(x = "something") +theme_minimal() +guides(fill = FALSE)
+  ))
+
+
+paste0(capture.output(str(pplot$data)), sep = "\n", collapse = "")
+```
 
 
 ```{r}

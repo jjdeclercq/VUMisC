@@ -27,9 +27,9 @@ alerts_list:
     content: Just the tip.
     collapse: yes
   newa:
-    title: 'new'
-    type: 'tip'
-    content: 'something'
+    title: new
+    type: tip
+    content: something
     icon: yes
     collapse: no
     date_created: ''
@@ -46,3 +46,4 @@ alerts_list:
     resolved: no
     date_resolved: ''
     resolution: ''
+

@@ -33,8 +33,9 @@ devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/h
 :::
 
 # Another section
-
+::: {#ale-test2}
 {{< alert "test2" >}} 
+:::
 
 ::: {#ale-newa}
 {{< alert "newa" >}}
@@ -46,22 +47,8 @@ devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/h
 {{< alert "test3" >}}
 :::
 
-@ale-test 
 
-::: {#tip-example2 .callout-tip collapse="true"}
-## Cross-Referencing a Tip
 
-Add an ID starting with `#tip-` to reference a tip.
-:::
-
-@tip-example2
-
-```{r}
-# require(tidyverse)
-# parsermd::parse_rmd("example.qmd") |> as.data.frame() |> pull(ast) %>% parsermd::as_document() %>% print()
-#     mutate(order = cumsum(type == "rmd_heading")) |> rowwise() |> 
-#     mutate(x = ifelse(type == "rmd_chunk", paste0(parsermd::as_document(ast), collapse = ""), "")) 
-```
 
 ```{r}
 add_alert <- function(alert_name = NULL) {
@@ -128,11 +115,11 @@ add_alert <- function(alert_name = NULL) {
   }
  
   
-cat(paste0("To display this alert in your document, copy and paste the following shortcode into your text editor:\n\n{{< alert '", new_alert_name, "' >}}"))
+cat(paste0("To display this alert in your document, copy and paste the following shortcode into your text editor:\n\n::: {#ale-",new_alert_name,"}\n{{< alert '", new_alert_name, "' >}}\n:::"))
 
 }
 
-# add_alert()
+# add_alert("t")
 ```
 
 ```{r}
@@ -181,9 +168,7 @@ grep_alerts <- function(input_string){
 
 # Example usage:
 alerts_df <- read_alerts_df("_alerts.yml")
-# alerts_df %>% select(id, title, content ,resolved, date_created, date_resolved) %>% 
-#   mutate(link = paste0("@ale-",id))%>% 
-#   j.reactable(., columns = list(link = colDef(html = TRUE)), pagination = FALSE, height = 500)
+
 
 
 
@@ -195,7 +180,7 @@ parsermd::parse_rmd("example.qmd") %>%as.data.frame() %>%
     filter(order >0, has_alert) %>% 
   left_join(., get_toc("example.qmd"), by= "order") %>% 
   mutate(x = gsub('\\"', "", x)) %>% 
-  mutate(id =toString(grep_alerts(x))) %>% 
+  mutate(id = toString(grep_alerts(x))) %>% 
   separate_rows(., "id", sep = ",") %>% mutate(id= trimws(id)) %>% ungroup() %>% select(-title, -type) %>%  
   left_join(alerts_df, ., by = "id") %>% 
     mutate(section = case_when(is.na(section) ~ "Not included", 

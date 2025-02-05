@@ -1,0 +1,368 @@
+---
+title: "Archive plots"
+author:
+- Josh DeClercq
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: true
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+callout-appearance: minimal
+self-contained: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(magrittr)
+require(dplyr)
+require(knitr)
+require(kableExtra)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+require(tibble)
+require(glue)
+require(purrr)
+require(qreport)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/heads/main/JDmisc/JDmisc.R")
+```
+
+# Code
+
+```{r}
+process_line <- function(line, inside_chunk, used_slugs) {
+  # If we're inside a code chunk, return the line as is
+  if (inside_chunk) {
+    return(list(line = line, used_slugs = used_slugs))
+  }
+  
+  # Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+  if (grepl("^#{1,6} +[^#]", line)) {
+    # Extract the header text and trim whitespace
+    header_text <- trimws(gsub("^#{1,6} +", "", line))
+    # Generate the slug
+    slug <- slugify(header_text)
+    # Ensure the slug is unique
+    original_slug <- slug
+    i <- 1
+    while (slug %in% used_slugs) {
+      i <- i + 1
+      slug <- paste0(original_slug, "_x_", i)
+    }
+    # Add the slug to the set of used slugs
+    used_slugs <- c(used_slugs, slug)
+    # Add the cross-reference if it doesn't already exist
+    if (!grepl("\\{#.*\\}$", line)) {
+      line <- paste0(line, " {#", slug, "}")
+    }
+  }
+  return(list(line = line, used_slugs = used_slugs))
+}
+
+add_cross_links <- function(input_file, output_file = input_file) {
+  # Read the content of the Quarto Markdown file
+  lines <- readLines(input_file)
+  
+  # Create a binary vector to track if we're inside a code chunk
+  in_code_chunk <- rep(FALSE, length(lines))
+  
+  # Track if we are in a code chunk
+  inside_code_chunk <- FALSE
+  for (i in seq_along(lines)) {
+    if (grepl("^```", lines[i])) {
+      inside_code_chunk <- !inside_code_chunk
+    }
+    in_code_chunk[i] <- inside_code_chunk
+  }
+  
+  # Track used slugs to ensure uniqueness
+  used_slugs <- character(0)
+  
+  # Process each line and update used slugs
+  processed_lines <- character(length(lines))
+  for (i in seq_along(lines)) {
+    result <- process_line(lines[i], in_code_chunk[i], used_slugs)
+    processed_lines[i] <- result$line
+    used_slugs <- result$used_slugs
+  }
+  
+  # Write the modified content back to the file
+  writeLines(processed_lines, output_file)
+}
+```
+
+## Run function
+```{r}
+input_file <- "headers_and_chunks.qmd"
+add_cross_links(input_file, "headers_and_chunks2.qmd")
+
+```
+
+
+```{r}
+process_line <- function(line, inside_chunk, used_slugs) {
+# If we're inside a code chunk, return the line as is
+if (inside_chunk) {
+return(list(line = line, used_slugs = used_slugs))
+}
+
+# Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+if (grepl("^#{1,6} +[^#]", line)) {
+# Extract existing slug if present
+existing_slug <- regmatches(line, regexpr("\\{#([^}]*)\\}$", line))
+if (length(existing_slug) > 0) {
+ # Remove curly braces and add to used_slugs
+ used_slugs <- c(used_slugs, gsub("\\{#([^}]*)\\}$", "\\1", existing_slug))
+ # Remove existing slug from the line
+ line <- gsub("\\{#([^}]*)\\}$", "", line)
+ }
+ 
+ # Extract the header text and trim whitespace
+ header_text <- trimws(gsub("^#{1,6} +", "", line))
+ # Generate the slug
+ slug <- slugify(header_text)
+ # Ensure the slug is unique
+ original_slug <- slug
+ i <- 1
+ while (slug %in% used_slugs) {
+ i <- i + 1
+ slug <- paste0(original_slug, "_x_", i)
+ }
+ # Add the slug to the set of used slugs
+ used_slugs <- c(used_slugs, slug)
+ # Add the cross-reference
+ line <- paste0(line, " {#", slug, "}")
+ }
+ 
+ return(list(line = line, used_slugs = used_slugs))
+}
+
+# Helper function to generate slugs (you can customize this as needed)
+slugify <- function(text) {
+ text <- tolower(text)
+ text <- gsub("[^a-z0-9]+", "-", text)
+ text <- gsub("^-|-$", "", text)
+ return(text)
+}
+
+```
+
+### Tab 2
+```{r}
+
+process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
+  # If we're inside a code chunk or a tabbed section, return the line as is
+  if (inside_chunk || inside_tabset) {
+    return(list(line = line, used_slugs = used_slugs))
+  }
+  
+  # Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+  if (grepl("^#{1,6} +[^#]", line)) {
+    # Extract existing slug if present
+  existing_slug <- regmatches(line, regexpr("\\{#([^}]*)\\}$", line))
+  if (length(existing_slug) > 0) {
+   # Remove curly braces and add to used_slugs
+   used_slugs <- c(used_slugs, gsub("\\{#([^}]*)\\}$", "\\1", existing_slug))
+   # Remove existing slug from the line
+   line <- gsub("\\{#([^}]*)\\}$", "", line)
+  }
+
+    # Extract the header text and trim whitespace
+    header_text <- trimws(gsub("^#{1,6} +", "", line))
+    # Generate the slug
+    slug <- slugify(header_text)
+    # Ensure the slug is unique
+    original_slug <- slug
+    i <- 1
+    while (slug %in% used_slugs) {
+      i <- i + 1
+      slug <- paste0(original_slug, "_v", i)
+    }
+    # Add the slug to the set of used slugs
+    used_slugs <- c(used_slugs, slug)
+    # Add the cross-reference if it doesn't already exist
+    if (!grepl("\\{#.*\\}$", line)) {
+      line <- paste0(line, " {#", slug, "}")
+    }
+  }
+  return(list(line = line, used_slugs = used_slugs))
+}
+
+```
+
+:::
+
+# Section
+
+## Other section
+
+::: panel-tabset
+### Tab
+
+```{r}
+process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
+  # If we're inside a code chunk or a tabbed section, return the line as is
+  if (inside_chunk || inside_tabset) {
+    return(list(line = line, used_slugs = used_slugs))
+  }
+  
+
+# Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+if (grepl("^#{1,6} +[^#]", line)) {
+# Extract existing slug if present
+existing_slug <- regmatches(line, regexpr("\\{#([^}]*)\\}$", line))
+if (length(existing_slug) > 0) {
+# Remove curly braces and add to used_slugs
+used_slugs <- c(used_slugs, gsub("\\{#([^}]*)\\}$", "\\1", existing_slug))
+} else {
+# Extract the header text and trim whitespace
+header_text <- trimws(gsub("^#{1,6} +", "", line))
+# Generate the slug
+slug <- slugify(header_text)
+# Ensure the slug is unique
+original_slug <- slug
+i <- 1
+while (slug %in% used_slugs) {
+i <- i + 1
+slug <- paste0(original_slug, "_x_", i)
+}
+# Add the slug to the set of used slugs
+used_slugs <- c(used_slugs, slug)
+# Add the cross-reference
+line <- paste0(line, " {#", slug, "}")
+}
+}
+
+return(list(line = line, used_slugs = used_slugs))
+}
+```
+
+### Tab 2
+::: panel-tabset
+#### double tab
+```{r}
+3
+```
+
+#### double tab x
+```{r}
+3
+```
+
+#### double tab 2
+```{r}
+3
+```
+
+:::
+:::
+```{r}
+process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
+  # If we're inside a code chunk or a tabbed section, return the line as is
+  if (inside_chunk || inside_tabset) {
+    return(list(line = line, used_slugs = used_slugs))
+  }
+  
+  # Match headers (e.g., "# Section 1", "## Section 1.1", etc.)
+  if (grepl("^#{1,6} +[^#]", line)) {
+    # Extract the header text and trim whitespace
+    header_text <- trimws(gsub("^#{1,6} +", "", line))
+    # Generate the slug
+    slug <- slugify(header_text)
+    # Ensure the slug is unique
+    original_slug <- slug
+    i <- 1
+    while (slug %in% used_slugs) {
+      i <- i + 1
+      slug <- paste0(original_slug, "-", i)
+    }
+    # Add the slug to the set of used slugs
+    used_slugs <- c(used_slugs, slug)
+    # Add the cross-reference if it doesn't already exist
+    if (!grepl("\\{#.*\\}$", line)) {
+      line <- paste0(line, " {#", slug, "}")
+    }
+  }
+  return(list(line = line, used_slugs = used_slugs))
+}
+
+
+add_cross_links <- function(input_file, output_file = input_file) {
+  # Read the content of the Quarto Markdown file
+  lines <- readLines(input_file)
+  
+  # Create binary vectors to track if we're inside a code chunk or a tabbed section
+  in_code_chunk <- rep(FALSE, length(lines))
+  in_tabset <- rep(FALSE, length(lines))
+  
+  # Track if we are in a code chunk or a tabbed section
+  inside_code_chunk <- FALSE
+  inside_tabset <- FALSE
+  for (i in seq_along(lines)) {
+    if (grepl("^```", lines[i])) {
+      inside_code_chunk <- !inside_code_chunk
+    }
+    in_code_chunk[i] <- inside_code_chunk
+    
+    if (grepl("^::: panel-tabset", lines[i])) {
+      inside_tabset <- TRUE
+    } else if (grepl("^:::", lines[i]) && inside_tabset) {
+      inside_tabset <- FALSE
+    }
+    in_tabset[i] <- inside_tabset
+  }
+  
+  # Track used slugs to ensure uniqueness
+  used_slugs <- character(0)
+  
+  # Process each line and update used slugs
+  processed_lines <- character(length(lines))
+  for (i in seq_along(lines)) {
+    result <- process_line(lines[i], in_code_chunk[i], in_tabset[i], used_slugs)
+    processed_lines[i] <- result$line
+    used_slugs <- result$used_slugs
+  }
+  
+  # Write the modified content back to the file
+  writeLines(processed_lines, output_file)
+}
+
+
+input_file <- "headers_and_chunks.qmd"
+add_cross_links(input_file, "headers_and_chunks3.qmd")
+```
+
