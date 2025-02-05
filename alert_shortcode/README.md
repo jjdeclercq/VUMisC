@@ -4,10 +4,8 @@ _TODO_: Add a short description of your extension.
 
 ## Installing
 
-_TODO_: Replace the `<github-organization>` with your GitHub organization.
-
 ```bash
-quarto add <github-organization>/alert
+quarto add VUMisC/alert_shortcode
 ```
 
 This will install the extension under the `_extensions` subdirectory.
