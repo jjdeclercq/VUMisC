@@ -1568,7 +1568,7 @@ add_cross_links <- function(input_file, output_file = input_file) {
 }
 
 
-add_alert <- function(alert_name = NULL) {
+add_alert <- function(yaml_file = "_alerts.yml", alert_name = NULL) {
   # Load required libraries
   if (!requireNamespace("yaml", quietly = TRUE)) {
     stop("Package 'yaml' is required but not installed.")
@@ -1576,8 +1576,6 @@ add_alert <- function(alert_name = NULL) {
   if (!requireNamespace("rstudioapi", quietly = TRUE)) {
     stop("Package 'rstudioapi' is required but not installed.")
   }
-  
-  yaml_file <- "_alerts.yml"
   
   # Default template for an alert (all values blank or set to default)
   default_alert <- list(
