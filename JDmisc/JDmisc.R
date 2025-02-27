@@ -1418,7 +1418,7 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALS
   labs <- bind_rows(labs, chkbx)
   
   if(!is.null(src.dat)){
-    labs <- labs %>% mutate(derived = ifelse(variable %in% names(src.dat), "", "Yes"))
+    labs <- labs %>% mutate(derived = ifelse(variable %in% c(chkbx$variable, names(src.dat)), "", "Yes"))
   }
   
   
@@ -1568,14 +1568,110 @@ add_cross_links <- function(input_file, output_file = input_file) {
 }
 
 
-# # create some sample data
-# df <- data.frame(x = 1:5, y = 6:10)
-# 
-# # add variable labels using inline_label function
-# # view variable labels
-# 
-# df_labeled <- df %>%
-#   inline_label(x = "Variable X", y = "Variable Y")
-# 
-# Hmisc::label(df_labeled$x) # should return "Variable X"
-# Hmisc::label(df_labeled$y) # should return "Variable Y"
+add_alert <- function(alert_name = NULL) {
+  # Load required libraries
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Package 'yaml' is required but not installed.")
+  }
+  if (!requireNamespace("rstudioapi", quietly = TRUE)) {
+    stop("Package 'rstudioapi' is required but not installed.")
+  }
+  
+  yaml_file <- "_alerts.yml"
+  
+  # Default template for an alert (all values blank or set to default)
+  default_alert <- list(
+    title = "",
+    type = "",
+    content = "",
+    icon = TRUE,
+    collapse = FALSE,
+    date_created = Sys.Date(),
+    resolved = FALSE,
+    date_resolved = "",
+    resolution = ""
+  )
+  
+  if (!file.exists(yaml_file)) {
+    # File does not exist: Create one with a single template alert.
+    if (is.null(alert_name)) {
+      new_alert_name <- "alert001"
+    } else {
+      new_alert_name <- alert_name
+    }
+    alerts_data <- list(alerts_list = list())
+    alerts_data$alerts_list[[new_alert_name]] <- default_alert
+    
+    # Write the new YAML file
+    yaml::write_yaml(alerts_data, yaml_file)
+  } else {
+    # File exists: Read existing YAML data
+    alerts_data <- yaml::read_yaml(yaml_file)
+    # Ensure alerts_list exists
+    if (is.null(alerts_data$alerts_list)) {
+      alerts_data$alerts_list <- list()
+    }
+    # Count the existing alerts (irrespective of their names)
+    n <- length(alerts_data$alerts_list)
+    if (is.null(alert_name)) {
+      new_alert_name <- paste0("alert", sprintf("%03d", n + 1))
+    } else {
+      new_alert_name <- alert_name
+    }
+    # Append the new blank alert at the bottom
+    alerts_data$alerts_list[[new_alert_name]] <- default_alert
+    # Write the updated YAML back to file
+    yaml::write_yaml(alerts_data, yaml_file)
+  }
+  
+  # Open the file in RStudio (if available)
+  if (rstudioapi::isAvailable()) {
+    rstudioapi::documentOpen(normalizePath(yaml_file))
+  } else {
+    message("RStudio API not available; please open ", yaml_file, " manually.")
+  }
+  
+  
+  cat(paste0("To display this alert in your document, copy and paste the following shortcode into your text editor:\n\n::: {#ale-",new_alert_name,"}\n{{< alert '", new_alert_name, "' >}}\n:::"))
+  
+}
+
+read_alerts_df <- function(yaml_file = "_alerts.yml") {
+  # Load required packages (install if necessary)
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("Package 'yaml' is required but not installed.")
+  }
+  if (!requireNamespace("purrr", quietly = TRUE)) {
+    stop("Package 'purrr' is required but not installed.")
+  }
+  if (!requireNamespace("tibble", quietly = TRUE)) {
+    stop("Package 'tibble' is required but not installed.")
+  }
+  
+  # Read the YAML file
+  alerts_data <- yaml::read_yaml(yaml_file)
+  
+  # Extract the alerts_list
+  alerts_list <- alerts_data$alerts_list
+  
+  # Convert the alerts_list to a dataframe
+  # Each alert becomes a row; missing fields will become NA
+  df <- purrr::map_df(names(alerts_list), function(alert_id) {
+    alert <- alerts_list[[alert_id]]
+    alert$id <- alert_id  # add an id column from the key
+    tibble::as_tibble(alert)
+  })
+  
+  # Optional: reorder columns to have 'id' first
+  df <- df[, c("id", setdiff(names(df), "id"))]
+  
+  return(df)
+}
+
+grep_alerts <- function(input_string){
+  
+  pattern <- "\\{\\{<\\s*alert\\s+([^ >]+)\\s*>\\}\\}"
+  matches <- str_match_all(input_string, pattern)[[1]]
+  alert_names <- matches[,2]
+  alert_names
+}
