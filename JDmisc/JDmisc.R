@@ -1,5 +1,5 @@
 
-
+ac <- as.character
 lw <- function(x) length(which(x))
 lu <- function(x) length(unique(x))
 med.iqr <- function(x) paste0(median(x)," (", quantile(x, 0.25), ", ",quantile(x, 0.75), ")")
