@@ -1567,9 +1567,7 @@ add_cross_links <- function(input_file, output_file = input_file) {
   writeLines(processed_lines, output_file)
 }
 
-
 add_alert <- function(yaml_file = "_alerts.yml", alert_name = NULL) {
-  # Load required libraries
   if (!requireNamespace("yaml", quietly = TRUE)) {
     stop("Package 'yaml' is required but not installed.")
   }
@@ -1577,21 +1575,26 @@ add_alert <- function(yaml_file = "_alerts.yml", alert_name = NULL) {
     stop("Package 'rstudioapi' is required but not installed.")
   }
   
-  # Default template for an alert (all values blank or set to default)
+  # Default template
   default_alert <- list(
     title = "",
     type = "",
     content = "",
     icon = TRUE,
     collapse = FALSE,
-    date_created = Sys.Date(),
+    date_created = I(as.character(Sys.Date())),  # <- Force it to be written as string
     resolved = FALSE,
     date_resolved = "",
-    resolution = ""
+    resolution = "",
+    include_extras = FALSE
+  )
+  
+  # Custom handlers to force true/false instead of yes/no
+  custom_handlers <- list(
+    logical = function(x) if (x) "true" else "false"
   )
   
   if (!file.exists(yaml_file)) {
-    # File does not exist: Create one with a single template alert.
     if (is.null(alert_name)) {
       new_alert_name <- "alert001"
     } else {
@@ -1599,39 +1602,40 @@ add_alert <- function(yaml_file = "_alerts.yml", alert_name = NULL) {
     }
     alerts_data <- list(alerts_list = list())
     alerts_data$alerts_list[[new_alert_name]] <- default_alert
-    
-    # Write the new YAML file
-    yaml::write_yaml(alerts_data, yaml_file)
+    yaml::write_yaml(alerts_data, yaml_file, handlers = custom_handlers)
   } else {
-    # File exists: Read existing YAML data
     alerts_data <- yaml::read_yaml(yaml_file)
-    # Ensure alerts_list exists
     if (is.null(alerts_data$alerts_list)) {
       alerts_data$alerts_list <- list()
     }
-    # Count the existing alerts (irrespective of their names)
     n <- length(alerts_data$alerts_list)
     if (is.null(alert_name)) {
       new_alert_name <- paste0("alert", sprintf("%03d", n + 1))
     } else {
       new_alert_name <- alert_name
     }
-    # Append the new blank alert at the bottom
     alerts_data$alerts_list[[new_alert_name]] <- default_alert
-    # Write the updated YAML back to file
-    yaml::write_yaml(alerts_data, yaml_file)
+    yaml::write_yaml(alerts_data, yaml_file, handlers = custom_handlers)
   }
+  ## Fix quoting or boolean madness
+  ## Having such trouble with true/false and yes/no quoted and not. Bah!
+  x <- readLines(yaml_file)
+  x <- gsub("'true'", "true", x, fixed = TRUE)
+  x <- gsub("'false'", "false", x, fixed = TRUE)
+  writeLines(x, yaml_file)
   
-  # Open the file in RStudio (if available)
   if (rstudioapi::isAvailable()) {
     rstudioapi::documentOpen(normalizePath(yaml_file))
   } else {
     message("RStudio API not available; please open ", yaml_file, " manually.")
   }
   
-  
-  cat(paste0("To display this alert in your document, copy and paste the following shortcode into your text editor:\n\n::: {#ale-",new_alert_name,"}\n{{< alert '", new_alert_name, "' >}}\n:::"))
-  
+  cat(paste0(
+    "To display this alert in your document, copy and paste the following shortcode into your text editor:\n\n",
+    "::: {#ale-", new_alert_name, "}\n",
+    "{{< alert '", new_alert_name, "' >}}\n",
+    ":::"
+  ))
 }
 
 read_alerts_df <- function(yaml_file = "_alerts.yml") {
