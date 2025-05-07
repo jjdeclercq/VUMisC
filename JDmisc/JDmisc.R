@@ -1677,3 +1677,24 @@ grep_alerts <- function(input_string){
   alert_names <- matches[,2]
   alert_names
 }
+
+format_alerts <- function(qmd, yaml){
+  
+  parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
+    mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
+    mutate(x = ifelse(type == "rmd_markdown", paste0(parsermd::as_document(ast), collapse = ""), "")) %>% 
+    mutate(has_alert = grepl("\\{\\{< alert", x)) %>% 
+    mutate(y = "") %>% 
+    filter(order >0, has_alert) %>% 
+    left_join(., get_toc(qmd), by= "order") %>% 
+    mutate(x = gsub('\\"', "", x)) %>% mutate(x = gsub("\\'", "", x)) %>% 
+    mutate(id = toString(grep_alerts(x))) %>% 
+    separate_rows(., "id", sep = ",") %>% mutate(id= trimws(id)) %>% ungroup() %>% select(-title, -type) %>%  
+    left_join(read_alerts_df(yaml), ., by = "id") %>% 
+    mutate(section = case_when(is.na(section) ~ "Not included", 
+                               !grepl("#ale", x) ~ glue::glue('§{section}'),
+                               TRUE ~ glue::glue('<a href="#ale-{id}" class="quarto-xref"
+                                                aria-expanded="false">§{section}</a>') 
+    )) %>% 
+    select(section, title, content ,resolved, any_of(c("date_created", "date_resolved")))
+}
