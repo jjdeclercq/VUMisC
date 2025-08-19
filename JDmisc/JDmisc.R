@@ -1116,7 +1116,7 @@ changelog2 <- function(dat, id.vars) {
        compress='xz', compression_level=9)
   
   
-  return(paste(length(comparisons_to_run), "comparisons run.\nSummaries saved to:", changelog_output_file))
+  return(cat(length(comparisons_to_run), "comparisons run.\nSummaries saved to:", changelog_output_file))
   
 }
 
@@ -1125,6 +1125,22 @@ retrieve_archive <- function(dat, wd = getwd()){
   load(fp)
   ad <- archive_details
   return(ad)
+}
+
+reset_archive_details <- function(dat, wd = getwd()){
+  
+  ## If the number of data sets is too damn high
+  ## Manually delete datasets from archive folder
+  ## Run this function
+  ## Re-run changelog2
+  
+  FP <- paste0(wd, "/archive/", dat)
+  files <- list.files(FP)
+  archive_details <- retrieve_archive(dat, wd = wd) %>%  
+    mutate(n.diffs = c(0, rep(NA, nrow(.)-1))) %>% 
+    filter(file %in% files)
+  save(archive_details, file = paste0(FP, "/archive_summary_", dat, ".rda"))
+  
 }
 
 
@@ -1159,6 +1175,71 @@ j_dataChk <- function (d, checks, id, summary = TRUE)
   Dat <- rbindlist(Dat, fill = TRUE)
   
   return(list(s = s, d = Dat))
+}
+
+j_dataChk2 <- function (d, checks, id, summary = TRUE) 
+{   
+  # Borrowed extensively from FHarrell's qreport::dataChk
+  omit0 = TRUE
+  byid = TRUE
+  jj <- list()
+  s <- NULL
+  X <- Dat <- list()
+  
+  
+  for (i in 1:length(checks)) {
+    x <- checks[i]
+    nx <- names(x)
+    cx <- as.character(x)
+    if(is.null(nx)) nx <- cx
+    else if(nx %in% '') nx <- cx
+    cx <- gsub("%between% c\\((.*?)\\)", "[\\1]", cx)
+    form <- as.formula(paste("~", cx))
+    vars.involved <- all.vars(form)
+    z <- d[eval(x), c(id, vars.involved), with = FALSE]
+    
+    no <- nrow(z)
+    if (byid && no > 0) {
+      Da <- z[, id, with = FALSE]
+      Da[, `:=`(Check, cx)]
+      Da[, `:=`(Name, nx)]
+      Da[, `:=`(Values, do.call(paste,c(z[, vars.involved, with = FALSE], list(sep = ", "))))]
+      Da$vars <- toString(vars.involved)
+      Dat[[cx]] <- Da
+    }
+    s <- rbind(s, data.frame(Name = nx, Check = cx, n = no))
+  }
+  
+  Dat <- rbindlist(Dat, fill = TRUE)
+  
+  if(nrow(Dat) > 0){
+    Dat <- Dat %>% 
+      separate_rows(., c("Values", "vars"), sep = ", ")  %>%
+      mutate(X = paste(paste0("<b>",vars, "</b>"), Values, sep = ": ")) %>% 
+      group_by(Name, !!!rlang::syms(id))  %>% 
+      summarise(fields = paste(X, collapse = "<br>"), .groups = "drop") %>% 
+      as.data.frame()
+  }
+  
+  return(list(s = s, d = Dat))
+}
+format_data_checks <- function(L){
+  
+  L <- list_transpose(L)
+  S <- bind_rows(L$s)
+  D <- bind_rows(L$d)
+  
+  if(is.null(D)|nrow(D)==0){
+    D <- data.frame(Name = "No failed data checks")
+  }
+  
+  L <- list(Summary = S %>% jgtt(),
+            Detail = j.reactable(D, groupBy = c("Name"), 
+                                 columns = list(fields = colDef(html = TRUE, width = 350)),
+                                 csv.file = "data_checks"))
+  
+  return(L)
+  
 }
 
 inline_recode <- function(dat, var){
