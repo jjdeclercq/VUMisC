@@ -185,9 +185,7 @@ library(gt)
 #     ))
 #   )
 # )
-theme_gtsummary_compact()
-theme_gtsummary_continuous2()
-theme_gtsummary_eda()
+
 
 ## They changed the way themes work. How rude!
 # set_gtsummary_theme(my_theme)
@@ -215,6 +213,31 @@ my_theme2 <-list(
                                               data_row.padding = px(4)))
   )
 )
+
+
+my_theme_stripe <-list(
+  "as_gt-lst:addl_cmds" = list(
+    tab_spanner = rlang::expr(gt::tab_options(table.font.size = 'small')),
+    user_added1 = rlang::expr(gt::opt_row_striping()),
+    user_added2 = rlang::expr(gt::opt_table_lines("default")),
+    user_added3 = rlang::expr(gt::tab_options(table_body.hlines.color = "white",
+                                              row.striping.background_color = "#fafafa",
+                                              source_notes.font.size = 12,
+                                              table.font.size = 12,
+                                              # table.width = px(700),
+                                              heading.align = "left",
+                                              heading.title.font.size = 16,
+                                              table.border.top.color = "transparent",
+                                              table.border.top.width = px(3),
+                                              data_row.padding = px(4)))
+  )
+)
+reset_gtsummary_theme()
+
+theme_gtsummary_compact()
+theme_gtsummary_continuous2()
+theme_gtsummary_eda()
+set_gtsummary_theme(my_theme_stripe)
 
 ## gtsummary updates means this version doesn't work anymore
 
@@ -325,23 +348,23 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   }
   
   # apply gt styling
-  tab <- tab %>%
-    as_gt() %>%
-    gt::tab_options(table.font.size = 'small') %>%
-    gt::opt_row_striping() %>%
-    gt::opt_table_lines("default") %>%
-    gt::tab_options(
-      table_body.hlines.color = "white",
-      row.striping.background_color = "#fafafa",
-      source_notes.font.size = 12,
-      table.font.size = 12,
-      # table.width = gt::px(700),
-      heading.align = "left",
-      heading.title.font.size = 16,
-      table.border.top.color = "transparent",
-      table.border.top.width = gt::px(3),
-      data_row.padding = gt::px(4)
-    )
+  # tab <- tab %>%
+  #   as_gt() %>%
+  #   gt::tab_options(table.font.size = 'small') %>%
+  #   gt::opt_row_striping() %>%
+  #   gt::opt_table_lines("default") %>%
+  #   gt::tab_options(
+  #     table_body.hlines.color = "white",
+  #     row.striping.background_color = "#fafafa",
+  #     source_notes.font.size = 12,
+  #     table.font.size = 12,
+  #     # table.width = gt::px(700),
+  #     heading.align = "left",
+  #     heading.title.font.size = 16,
+  #     table.border.top.color = "transparent",
+  #     table.border.top.width = gt::px(3),
+  #     data_row.padding = gt::px(4)
+  #   )
   
   return(tab)
 }
