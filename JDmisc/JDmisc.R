@@ -190,7 +190,7 @@ library(gt)
 ## They changed the way themes work. How rude!
 # set_gtsummary_theme(my_theme)
 
-
+## I don't use this anymore (did I ever?)
 my_theme2 <-list(
   "tbl_summary-str:default_con_type" = "continuous2",
   "tbl_summary-str:continuous_stat" = c("{median} ({p25} - {p75})"),
@@ -214,7 +214,7 @@ my_theme2 <-list(
   )
 )
 
-
+## New theme- only touches gt elements
 my_theme_stripe <-list(
   "as_gt-lst:addl_cmds" = list(
     tab_spanner = rlang::expr(gt::tab_options(table.font.size = 'small')),
@@ -232,59 +232,7 @@ my_theme_stripe <-list(
                                               data_row.padding = px(4)))
   )
 )
-reset_gtsummary_theme()
 
-theme_gtsummary_compact()
-theme_gtsummary_continuous2()
-theme_gtsummary_eda()
-set_gtsummary_theme(my_theme_stripe)
-
-## gtsummary updates means this version doesn't work anymore
-
-# jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
-#                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
-#                 spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
-#                 one_row_binary = FALSE, ...){
-#   
-#   if(!is.null(by)){#dat[,by] <- clear.labels(dat[,by])
-#     ST <- ifelse(Hmisc::label(dat[,by])=="", by, Hmisc::label(dat[,by]))
-#     
-#                 spanner.size.actual <- n_distinct(na.omit(dat[,by]))
-#                 spanner.text.actual <- paste0("**",ST ,"**")  }
-#   
-#   {if(!is.null(spanner.size)) spanner.size.actual <- spanner.size}
-#   {if(!is.null(spanner.text)) spanner.text.actual <- spanner.text}
-#   
-#   sort <- NULL
-#   {if(order.cat) sort = all_categorical() ~ "frequency"}
-#   
-#   
-#   
-#   if(one_row_binary) {TYPE <- list( all_dichotomous() ~ "dichotomous")} 
-#   else{
-#     TYPE <-  list( all_dichotomous() ~ "categorical")
-#   }
-#   if(force.continuous) {TYPE[[2]] <- where(is.numeric) ~ "continuous2"}
-#   
-#   
-#  tab <- dat  %>%
-#     tbl_summary(type = TYPE,
-#                 sort = sort,
-#                 digits = list(all_continuous() ~ c(Digits, Digits)),
-#                 by = !!by,
-#                 missing = missing,
-#                 missing_text = missing_text,
-#                 percent = percent,
-#                 ...) %>%
-#     bold_labels() %>%
-#    {if(add.n) add_n(.) else .}  %>% 
-#     {if(add.p) add_p(., pvalue_fun = function(x) style_pvalue(x, digits = 3)) else .}  %>% 
-#     {if(overall) add_overall(., last = TRUE) else .}
-#   
-#     if(!is.null(by)) tab %<>% modify_spanning_header(c(paste0("stat_", 1:spanner.size.actual)) ~ paste0("**",spanner.text.actual ,"**"))
-#  
-#   return(tab)
-# }
 
 jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, Digits = 1, 
                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
@@ -347,28 +295,28 @@ jgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
       )
   }
   
-  # apply gt styling
-  # tab <- tab %>%
-  #   as_gt() %>%
-  #   gt::tab_options(table.font.size = 'small') %>%
-  #   gt::opt_row_striping() %>%
-  #   gt::opt_table_lines("default") %>%
-  #   gt::tab_options(
-  #     table_body.hlines.color = "white",
-  #     row.striping.background_color = "#fafafa",
-  #     source_notes.font.size = 12,
-  #     table.font.size = 12,
-  #     # table.width = gt::px(700),
-  #     heading.align = "left",
-  #     heading.title.font.size = 16,
-  #     table.border.top.color = "transparent",
-  #     table.border.top.width = gt::px(3),
-  #     data_row.padding = gt::px(4)
-  #   )
-  
   return(tab)
 }
 
+set_jgt_theme <- function(){
+
+  reset_gtsummary_theme()
+  theme_gtsummary_compact()
+  theme_gtsummary_continuous2()
+  theme_gtsummary_eda()
+  set_gtsummary_theme(my_theme_stripe)
+
+}
+
+set_jgt_theme()
+
+set_pgt_theme <- function(){
+  
+  reset_gtsummary_theme()
+  theme_gtsummary_journal(journal = "jama")
+  theme_gtsummary_compact()
+  
+}
 
 jgtt <- function(dat, col.names = TRUE) {
   
@@ -403,36 +351,6 @@ get_table_id <- function(gt_tbl) {
   return(attr(gt_tbl, "table_id"))
 }
 
-
-# recat <- function(dat, omit.vars = ""){
-#   
-#   cat2 <-  dat %>% select(-any_of(omit.vars)) %>% 
-#     mutate(across(where(is.character), as.factor)) %>% 
-#     summarise(across(names(.), ~n_distinct(.x, na.rm = TRUE), .names = "{col};n"),
-#               across(names(.), ~levels(.x)[1], .names = "{col};l1"),
-#               across(names(.), ~levels(.x)[2], .names = "{col};l2"),
-#               across(names(.), ~sum(.x == levels(.x)[1], na.rm = TRUE), .names = "{col};f1"),
-#               across(names(.), ~sum(.x == levels(.x)[2], na.rm = TRUE), .names = "{col};f2")) %>% 
-#     mutate(x = "x") %>% pivot_longer(., -x, names_to = c("variable", ".value"), names_sep = ";" ) %>% 
-#     filter(n == 2) %>% select(-x) %>% left_join(., collect.labels(dat), by = "variable") %>%
-#     mutate(l = case_when(l1 %in% c("Yes","yes" ) ~ l1,
-#                          l2 %in% c("Yes","yes" ) ~ l2,
-#                          f1>=f2 ~ l1, 
-#                          TRUE ~ l2)) %>% 
-#     mutate(label = ifelse(is.na(label), variable, label)) %>% 
-#     mutate(new_label = paste0(label, ": ", l)) 
-#   
-#   
-#   lp <- cat2$variable
-#   names(lp) <- cat2$new_label
-#   
-#   
-#   dat %>% 
-#     mutate(across(c(where(is.character), -any_of(omit.vars)), as.factor))  %>% 
-#     mutate(across(any_of(cat2$variable), ~.x == levels(.x)[1])) %>% 
-#     rename(any_of(lp)) 
-#   
-# }
 
 ## Recategorize binary variables for single line summaries
 recat <- function(dat, omit.vars= NULL){
@@ -1908,3 +1826,71 @@ format_alerts <- function(qmd, yaml){
     )) %>% 
     select(section, title, content ,resolved, any_of(c("date_created", "date_resolved")))
 }
+
+
+xgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, overall.last = TRUE,
+                digit.cont = c(1), digit.cat = c(0,1), defaults = "jgt",
+                force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
+                spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
+                one_row_binary = FALSE, ...) {
+  
+  if(defaults == "pgt"){
+    one_row_binary <- TRUE
+    digit.cont <- c(0)
+    digit.cat <- c(0,0)
+    add.n <- FALSE
+  }
+  
+  # spanner label/size
+  if (!is.null(by)) {
+    ST <- ifelse(Hmisc::label(dat[, by]) == "", by, Hmisc::label(dat[, by]))
+    spanner.size.actual <- dplyr::n_distinct(stats::na.omit(dat[, by]))
+    spanner.text.actual <- paste0("**", ST, "**")
+  }
+  if (!is.null(spanner.size)) spanner.size.actual <- spanner.size
+  if (!is.null(spanner.text)) spanner.text.actual <- spanner.text
+  
+  # sort categorical vars by frequency if requested
+  sort <- NULL
+  if (order.cat) sort <- all_categorical() ~ "frequency"
+  
+  # variable type handling
+  if (one_row_binary) {
+    TYPE <- list(all_dichotomous() ~ "dichotomous")
+  } else {
+    TYPE <- list(all_dichotomous() ~ "categorical")
+  }
+  
+  if (force.continuous) {
+    TYPE[[length(TYPE) + 1]] <- where(is.numeric) ~ "continuous2"
+  }
+  
+  # build table
+  tab <- dat %>%
+    tbl_summary(
+      type = TYPE,
+      sort = sort,
+      digits = list(all_categorical() ~ digit.cat,
+                    all_continuous() ~ digit.cont),
+      by = !!by,
+      missing = missing,
+      missing_text = missing_text,
+      percent = percent,
+      ...
+    ) %>%
+    bold_labels() %>%
+    {if (add.n) add_n(.) else .} %>%
+    {if (add.p) add_p(., pvalue_fun = ~style_pvalue(.x, digits = 3)) else .} %>%
+    {if (overall) add_overall(., last = overall.last) else .}
+  
+  # apply spanning header if `by` given
+  if (!is.null(by)) {
+    tab <- tab %>%
+      modify_spanning_header(
+        c(paste0("stat_", 1:spanner.size.actual)) ~ paste0("**", spanner.text.actual, "**")
+      )
+  }
+  
+  return(tab)
+}
+
