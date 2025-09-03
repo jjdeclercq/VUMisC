@@ -1,0 +1,185 @@
+---
+title: "Render table to Word"
+format: html
+editor: visual
+---
+
+```{r}
+tables_to_word <- function(tbl_list, output = "tables.docx") {
+  # check: must be a list
+  if (!is.list(tbl_list)) stop("tbl_list must be a list of gt or gtsummary tables.")
+  
+  # save the list as RDA
+  save(tbl_list, file = "tables_tmp.rda")
+  
+  # create temporary qmd file
+  qmd_file <- "tables_tmp.qmd"
+  qmd_content <- c(
+    "---",
+    "title: \"Tables\"",
+    "format: docx",
+    "---",
+    "",
+    "```{r setup, include=FALSE}",
+    "library(gt)",
+    "library(gtsummary)",
+    "load('tables_tmp.rda')",
+    "```",
+    "",
+    "```{r render-tables, results='asis'}",
+    "for (nm in names(tbl_list)) {",
+    "  cap <- if (!is.null(nm) && nzchar(nm)) nm else NULL",
+    "  if (!is.null(cap)) cat('**', cap, '**', '\\n\\n')",
+    "  if (inherits(tbl_list[[nm]], 'gtsummary')) {",
+    "    print(as_gt(tbl_list[[nm]]))",
+    "  } else if (inherits(tbl_list[[nm]], 'gt_tbl')) {",
+    "    print(tbl_list[[nm]])",
+    "  } else {",
+    "    warning('Skipping element ', nm, ': not gt or gtsummary')",
+    "  }",
+    "  cat('\\n\\n')",
+    "}",
+    "```"
+  )
+  
+  writeLines(qmd_content, qmd_file)
+  
+  # render to Word
+  quarto::quarto_render(qmd_file, output_file = output, quiet = TRUE)
+  
+  # clean up
+  # unlink(c("tables_tmp.rda", qmd_file))
+  
+  message("Rendered Word file saved as: ", output)
+  invisible(output)
+}
+
+```
+
+
+```{r}
+set_pgt_theme()
+Table1 <- mtcars %>% select(mpg, cyl, disp) %>% xgt(., defaults = "pgt") 
+
+
+
+Table1 %>% as_gt() %>% gt::gtsave(., "Table1.docx")
+
+
+L <- list("Table 1 - some nonsense" = Table1)
+tables_to_word(L)
+```
+
+```{r}
+tables_to_word <- function(tbl_list, output = "tables.docx") {
+  library(gt)
+  library(gtsummary)
+  library(officer)
+  library(flextable)
+
+  # start empty Word doc
+  doc <- read_docx()
+
+  for (nm in names(tbl_list)) {
+    tbl <- tbl_list[[nm]]
+
+    # convert to gt, then flextable (since officer works with flextable)
+    if (inherits(tbl, "gtsummary")) {
+      gt_tbl <- as_gt(tbl)
+    } else if (inherits(tbl, "gt_tbl")) {
+      gt_tbl <- tbl
+    } else {
+      warning("Skipping ", nm, ": not gt/gtsummary")
+      next
+    }
+
+    ft <- as_flextable(gt_tbl)
+
+    # add caption if name exists
+    if (!is.null(nm) && nzchar(nm)) {
+      doc <- body_add_par(doc, nm, style = "heading 2")
+    }
+
+    # add table
+    doc <- body_add_flextable(doc, ft)
+    doc <- body_add_par(doc, "") # spacing
+  }
+
+  print(doc, target = output)
+  message("Saved Word doc: ", output)
+  invisible(output)
+}
+
+set_pgt_theme()
+ reset_gtsummary_theme()
+  theme_gtsummary_journal(journal = "nejm")
+
+tbl1 <- trial %>% select(age, grade, response) %>% tbl_summary(by = grade)
+tbl2 <- trial %>% select(age, trt) %>% tbl_summary(by = trt)
+
+mytables <- list(
+  "Table 1. Demographics" = tbl1,
+  "Table 2. Treatment groups" = tbl2
+)
+
+tables_to_word(mytables, "demo.docx")
+
+gt_group(a = tbl1 %>% as_gt() %>%
+   tab_header(title = "Boogaloo"), 
+   b = tbl2 %>% as_gt() %>%
+   tab_header(title = "And you")) %>% 
+  gtsave(., filename = "multiple_tables.docx")
+
+```
+
+
+```{r}
+pubble <- function(tbl_list, output, open = TRUE) {
+  stopifnot(is.list(tbl_list))
+  stopifnot(length(output) == 1)
+
+  library(gt)
+  library(purrr)
+
+  # Convert each element to gt, apply header if named
+  grouped <- imap(tbl_list, ~ {
+    tbl <- .x
+    # handle gtsummary
+    if (inherits(tbl, "gtsummary")) {
+      tbl <- as_gt(tbl)
+    }
+    # ensure it's gt now
+    if (!inherits(tbl, "gt_tbl")) {
+      stop("All elements must be gt or gtsummary tables")
+    }
+    if (!is.null(.y) && .y != "") {
+      tbl <- tab_header(tbl, title = .y)
+    }
+    tbl
+  })
+
+  # combine into one grouped gt
+  combined <- exec(gt_group, !!!grouped)
+
+  # save to chosen format
+  gtsave(combined, filename = output)
+
+  # optionally open file
+  if (open) {
+    if (.Platform$OS.type == "windows") {
+      shell.exec(output)
+    } else if (Sys.info()[["sysname"]] == "Darwin") {
+      system2("open", output)
+    } else {
+      system2("xdg-open", output)
+    }
+  }
+
+  invisible(output)
+}
+
+
+mytables %>% unname() %>% 
+pubble(., output = "tables.html")
+```
+

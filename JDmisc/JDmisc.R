@@ -1894,3 +1894,46 @@ xgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
   return(tab)
 }
 
+pubble <- function(tbl_list, output, open = TRUE) {
+  stopifnot(is.list(tbl_list))
+  stopifnot(length(output) == 1)
+  
+  library(gt)
+  library(purrr)
+  
+  # Convert each element to gt, apply header if named
+  grouped <- imap(tbl_list, ~ {
+    tbl <- .x
+    # handle gtsummary
+    if (inherits(tbl, "gtsummary")) {
+      tbl <- as_gt(tbl)
+    }
+    # ensure it's gt now
+    if (!inherits(tbl, "gt_tbl")) {
+      stop("All elements must be gt or gtsummary tables")
+    }
+    if (!is.null(.y) && .y != "") {
+      tbl <- tab_header(tbl, title = .y)
+    }
+    tbl
+  })
+  
+  # combine into one grouped gt
+  combined <- exec(gt_group, !!!grouped)
+  
+  # save to chosen format
+  gtsave(combined, filename = output)
+  
+  # optionally open file
+  if (open) {
+    if (.Platform$OS.type == "windows") {
+      shell.exec(output)
+    } else if (Sys.info()[["sysname"]] == "Darwin") {
+      system2("open", output)
+    } else {
+      system2("xdg-open", output)
+    }
+  }
+  
+  invisible(output)
+}
