@@ -793,9 +793,10 @@ rms.forest.plot <- function(summary, trib, breaks = seq(0.6, 2, .2)){
 get_toc <- function(rmd_file) {
   ## Takes in a rmdfile name or path
   ## Returns a data frame of the table of contents
+  parsed <- parsermd::parse_rmd(rmd_file)
   
-  parsermd::parse_rmd(rmd_file) %>% as_tibble() %>%as.data.frame() %>% 
-    filter(type == "rmd_heading") %>% as.data.frame() %>% select(contains("sec")) %>% mutate(n = 1:n()) %>%
+  parsed %>% as_tibble() %>%
+    filter(type == "rmd_heading") %>% select(contains("sec")) %>% mutate(n = 1:n()) %>%
     pivot_longer(., -n, values_drop_na = TRUE) %>% mutate(h_level = readr::parse_number(name)) %>%
     group_by(n)%>% filter(h_level == max(h_level)) %>% ungroup() %>%
     mutate(level_1 = cumsum(h_level == 1)) %>% group_by(level_1) %>%
@@ -811,7 +812,7 @@ get_toc <- function(rmd_file) {
     arrange(order, desc(name)) %>%
     group_by(title, order) %>% mutate(v = cumsum(value)) %>% filter(v > 0) %>%
     arrange(order, name) %>% group_by(title, order) %>%
-    summarise(section = paste0(value, collapse = ".")) %>% arrange(order,section) %>%
+    summarise(section = paste0(value, collapse = "."), .groups = "drop") %>% arrange(order,section) %>%
     select(order, section, title)
 }
 
@@ -1808,7 +1809,7 @@ grep_alerts <- function(input_string){
 
 format_alerts <- function(qmd, yaml){
   
-  parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
+  parsermd::parse_rmd(qmd) %>%as_tibble() %>% 
     mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
     mutate(x = ifelse(type == "rmd_markdown", paste0(parsermd::as_document(ast), collapse = ""), "")) %>% 
     mutate(has_alert = grepl("\\{\\{< alert", x)) %>% 
