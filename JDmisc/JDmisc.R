@@ -794,7 +794,7 @@ get_toc <- function(rmd_file) {
   ## Takes in a rmdfile name or path
   ## Returns a data frame of the table of contents
   
-  parsermd::parse_rmd(rmd_file) %>%as.data.frame() %>% 
+  parsermd::parse_rmd(rmd_file) %>% as_tibble() %>%as.data.frame() %>% 
     filter(type == "rmd_heading") %>% as.data.frame() %>% select(contains("sec")) %>% mutate(n = 1:n()) %>%
     pivot_longer(., -n, values_drop_na = TRUE) %>% mutate(h_level = readr::parse_number(name)) %>%
     group_by(n)%>% filter(h_level == max(h_level)) %>% ungroup() %>%
@@ -1551,7 +1551,7 @@ jj_index <- function(dat, qmd, omit = "", checkbox_sep = "___", crosslink = FALS
   
   
   
-  prp <- parsermd::parse_rmd(qmd) %>%as.data.frame() %>% 
+  prp <- parsermd::parse_rmd(qmd) %>% as_tibble() %>%as.data.frame() %>% 
     mutate(order = cumsum(type == "rmd_heading")) %>% rowwise() %>% 
     mutate(x = ifelse(type == "rmd_chunk", paste0(parsermd::as_document(ast), collapse = ""), "")) %>% 
     mutate(y = "") %>% 
@@ -1831,7 +1831,7 @@ format_alerts <- function(qmd, yaml){
 xgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALSE, overall.last = TRUE,
                 digit.cont = c(1), digit.cat = c(0,1), defaults = "jgt",
                 force.continuous = FALSE, missing = "ifany", missing_text = "Missing",
-                spanner.size = NULL, spanner.text = NULL, add.n = TRUE, percent = "column", 
+                spanner.text = NULL, add.n = TRUE, percent = "column", 
                 one_row_binary = FALSE, ...) {
   
   if(defaults == "pgt"){
@@ -1847,7 +1847,6 @@ xgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
     spanner.size.actual <- dplyr::n_distinct(stats::na.omit(dat[, by]))
     spanner.text.actual <- paste0("**", ST, "**")
   }
-  if (!is.null(spanner.size)) spanner.size.actual <- spanner.size
   if (!is.null(spanner.text)) spanner.text.actual <- spanner.text
   
   # sort categorical vars by frequency if requested
@@ -1895,6 +1894,12 @@ xgt <- function(dat, by = NULL, add.p = FALSE, overall = FALSE, order.cat = FALS
 }
 
 pubble <- function(tbl_list, output, open = TRUE) {
+  
+  ## Function takes a named list of gt or gtsummary tables
+  ## Saves the tables as a .docx or .html file based on output specification
+  ## output should be a filename with extension: "tables.docx"
+  ## `open` will open the file on your computer
+  
   stopifnot(is.list(tbl_list))
   stopifnot(length(output) == 1)
   

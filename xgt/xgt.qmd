@@ -4,134 +4,37 @@ format: html
 editor: visual
 ---
 
+# xgt()
+## Descriptive tables
 ```{r}
-tables_to_word <- function(tbl_list, output = "tables.docx") {
-  # check: must be a list
-  if (!is.list(tbl_list)) stop("tbl_list must be a list of gt or gtsummary tables.")
-  
-  # save the list as RDA
-  save(tbl_list, file = "tables_tmp.rda")
-  
-  # create temporary qmd file
-  qmd_file <- "tables_tmp.qmd"
-  qmd_content <- c(
-    "---",
-    "title: \"Tables\"",
-    "format: docx",
-    "---",
-    "",
-    "```{r setup, include=FALSE}",
-    "library(gt)",
-    "library(gtsummary)",
-    "load('tables_tmp.rda')",
-    "```",
-    "",
-    "```{r render-tables, results='asis'}",
-    "for (nm in names(tbl_list)) {",
-    "  cap <- if (!is.null(nm) && nzchar(nm)) nm else NULL",
-    "  if (!is.null(cap)) cat('**', cap, '**', '\\n\\n')",
-    "  if (inherits(tbl_list[[nm]], 'gtsummary')) {",
-    "    print(as_gt(tbl_list[[nm]]))",
-    "  } else if (inherits(tbl_list[[nm]], 'gt_tbl')) {",
-    "    print(tbl_list[[nm]])",
-    "  } else {",
-    "    warning('Skipping element ', nm, ': not gt or gtsummary')",
-    "  }",
-    "  cat('\\n\\n')",
-    "}",
-    "```"
-  )
-  
-  writeLines(qmd_content, qmd_file)
-  
-  # render to Word
-  quarto::quarto_render(qmd_file, output_file = output, quiet = TRUE)
-  
-  # clean up
-  # unlink(c("tables_tmp.rda", qmd_file))
-  
-  message("Rendered Word file saved as: ", output)
-  invisible(output)
-}
+set_jgt_theme()
+mtcars %>% select(mpg, cyl, disp) %>% xgt() 
 
+mtcars %>% select(mpg, cyl, disp, vs, carb) %>% xgt(., order.cat = TRUE) 
+
+mtcars %>% select(mpg, cyl, disp, vs, carb) %>% xgt(., force.continuous  = TRUE) 
+
+mtcars %>% select(mpg, cyl, disp, vs) %>% 
+  xgt(., by = "vs", overall = TRUE, overall.last = TRUE, add.p = TRUE, percent = "row", 
+      spanner.text = "Not sure what 'vs' is", add.n = FALSE, digit.cont = 2, digit.cat = c(0, 3))
 ```
 
-
+## Publication quality tables
 ```{r}
 set_pgt_theme()
-Table1 <- mtcars %>% select(mpg, cyl, disp) %>% xgt(., defaults = "pgt") 
-
-
-
-Table1 %>% as_gt() %>% gt::gtsave(., "Table1.docx")
-
-
-L <- list("Table 1 - some nonsense" = Table1)
-tables_to_word(L)
-```
-
-```{r}
-tables_to_word <- function(tbl_list, output = "tables.docx") {
-  library(gt)
-  library(gtsummary)
-  library(officer)
-  library(flextable)
-
-  # start empty Word doc
-  doc <- read_docx()
-
-  for (nm in names(tbl_list)) {
-    tbl <- tbl_list[[nm]]
-
-    # convert to gt, then flextable (since officer works with flextable)
-    if (inherits(tbl, "gtsummary")) {
-      gt_tbl <- as_gt(tbl)
-    } else if (inherits(tbl, "gt_tbl")) {
-      gt_tbl <- tbl
-    } else {
-      warning("Skipping ", nm, ": not gt/gtsummary")
-      next
-    }
-
-    ft <- as_flextable(gt_tbl)
-
-    # add caption if name exists
-    if (!is.null(nm) && nzchar(nm)) {
-      doc <- body_add_par(doc, nm, style = "heading 2")
-    }
-
-    # add table
-    doc <- body_add_flextable(doc, ft)
-    doc <- body_add_par(doc, "") # spacing
-  }
-
-  print(doc, target = output)
-  message("Saved Word doc: ", output)
-  invisible(output)
-}
-
-set_pgt_theme()
- reset_gtsummary_theme()
-  theme_gtsummary_journal(journal = "nejm")
-
-tbl1 <- trial %>% select(age, grade, response) %>% tbl_summary(by = grade)
-tbl2 <- trial %>% select(age, trt) %>% tbl_summary(by = trt)
-
-mytables <- list(
-  "Table 1. Demographics" = tbl1,
-  "Table 2. Treatment groups" = tbl2
-)
-
-tables_to_word(mytables, "demo.docx")
-
-gt_group(a = tbl1 %>% as_gt() %>%
-   tab_header(title = "Boogaloo"), 
-   b = tbl2 %>% as_gt() %>%
-   tab_header(title = "And you")) %>% 
-  gtsave(., filename = "multiple_tables.docx")
+mtcars %>% select(hp, drat, wt, vs, am, cyl) %>% 
+  mutate(wt_over3 = ifelse(wt > 3, "wt >3", "wt <= 3")) %>% 
+  mutate(vs = yesno(vs), am = yesno(am)) %>% 
+  inline_label(hp = "Horse power",
+               wt_over3 = "Weight categorized",
+               vs = "VS",
+               am = "AM") %>% 
+  recat() %>% xgt(., defaults = "pgt", by = "cyl")
 
 ```
 
+
+## Exporting tables with pubble
 
 ```{r}
 pubble <- function(tbl_list, output, open = TRUE) {
