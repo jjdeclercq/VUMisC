@@ -1,0 +1,154 @@
+---
+title: "Advanced R"
+format: html
+editor: visual
+---
+
+
+```{r}
+require(lobstr)
+```
+# Chapter 2
+## 2.2
+Notes:
+
+`<-` creates a binding from the name on the left-hand side to the object on the right-hand side. Thus, you can think of a name as a reference to a value. 
+```{r}
+x <- c(1, 2, 3)
+y <- x
+obj_addr(x)
+
+obj_addr(y)
+
+a <- 1:10
+b <- a
+c <- b
+d <- 1:10
+
+obj_addr(a)
+obj_addr(b)
+obj_addr(c)
+obj_addr(d)
+
+
+obj_addr(mean)
+obj_addr(base::mean) #Even though both refer to the same function definition, they are different bindings — that is, different references to the same underlying object.
+obj_addr(get("mean"))
+obj_addr(evalq(mean))
+obj_addr(match.fun("mean"))
+```
+
+
+## 2.3
+```{r}
+x <- c(1, 2, 3)
+y <- x
+obj_addr(x)
+obj_addr(y)
+
+y[[3]] <- 4
+x
+y
+
+obj_addr(y)
+
+x <- c(1L, 2L, 3L)
+tracemem(x)
+
+x[[3]] <- 4
+
+x <- list(1:10)
+x[[2]] <- x
+```
+
+## 2.4
+```{r}
+obj_size(letters)
+obj_size(ggplot2::diamonds)
+
+x <- runif(1e6)
+obj_size(x)
+#> 8.00 MB
+
+y <- list(x, x, x)
+obj_size(y)
+
+funs <- list(mean, sd, var)
+obj_size(funs)
+#> 18.76 kB
+#> 
+a <- runif(1e6)
+obj_size(a)
+
+b <- list(a, a)
+obj_size(b)
+obj_size(a, b)
+
+b[[1]][[1]] <- 10
+obj_size(b)
+obj_size(a, b)
+
+b[[2]][[1]] <- 10
+obj_size(b)
+obj_size(a, b)
+```
+
+## 2.5
+```{r}
+x <- data.frame(matrix(runif(5 * 1e4), ncol = 5))
+medians <- vapply(x, median, numeric(1))
+
+for (i in seq_along(medians)) {
+  x[[i]] <- x[[i]] - medians[[i]]
+}
+
+cat(tracemem(x), "\n")
+
+for (i in 1:5) {
+  x[[i]] <- x[[i]] - medians[[i]]
+}
+
+x <- list()
+x[[1]] <- x
+
+
+create_random_df <- function(nrow, ncol) {
+  random_matrix <- matrix(runif(nrow * ncol), nrow = nrow)
+  as.data.frame(random_matrix)
+}
+
+create_random_df(2, 2)
+
+subtract_df <- function(x, medians) {
+  for (i in seq_along(medians)) {
+    x[[i]] <- x[[i]] - medians[[i]]
+  }
+  x
+}
+
+subtract_list <- function(x, medians) {
+  x <- as.list(x)
+  x <- subtract_df(x, medians)
+  list2DF(x)
+}
+
+benchmark_medians <- function(ncol) {
+  df <- create_random_df(nrow = 1e4, ncol = ncol)
+  medians <- vapply(df, median, numeric(1), USE.NAMES = FALSE)
+
+  bench::mark(
+    "data frame" = subtract_df(df, medians),
+    "list" = subtract_list(df, medians),
+    time_unit = "ms"
+  )
+}
+
+benchmark_medians(1)
+#> # A tibble: 2 x 6
+#>   expression    min median `itr/sec` mem_alloc `gc/sec`
+#>   <bch:expr>  <dbl>  <dbl>     <dbl> <bch:byt>    <dbl>
+#> 1 data frame 0.0419 0.0740    12450.     344KB     11.2
+#> 2 list       0.0543 0.125      7866.     156KB     16.4
+
+```
+

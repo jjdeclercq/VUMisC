@@ -1621,6 +1621,15 @@ slugify <- function(text) {
   return(text)
 }
 
+name_chunks <- function(file){
+  
+  rstudioapi::documentClose()
+  namer::unname_chunks(file)
+  namer::name_chunks(file, unname = TRUE)
+  rstudioapi::documentOpen(file)
+  
+}
+
 process_line <- function(line, inside_chunk, inside_tabset, used_slugs) {
   # If we're inside a code chunk or a tabbed section, return the line as is
   if (inside_chunk || inside_tabset) {
@@ -1942,4 +1951,75 @@ pubble <- function(tbl_list, output, open = TRUE) {
   }
   
   invisible(output)
+}
+
+
+format_redcap_info <- function(
+    data,
+    EVENT = "event_name",
+    FORM  = "instrument_label",
+    VAR   = "field_name",
+    REP   = "repeat_inst"
+) {
+  stopifnot(is.data.frame(data))
+  
+  has_col <- function(col) col %in% names(data)
+  
+  data %>%
+    rowwise() %>%
+    mutate(
+      redcap_info = {
+        glue_collapse(
+          c(
+            if (has_col(EVENT) && !is.na(.data[[EVENT]])) 
+              glue("<b>Event name:</b> {.data[[EVENT]]}"),
+            if (has_col(FORM)) 
+              glue("<b>Form:</b> {.data[[FORM]]}"),
+            if (has_col(VAR)) 
+              glue("<b>Primary variable:</b> {.data[[VAR]]}"),
+            if (has_col(REP) && !is.na(.data[[REP]])) 
+              glue("<b>Repeat instance:</b> {.data[[REP]]}")
+          ),
+          sep = "<br>"
+        )
+      }
+    ) %>%
+    ungroup()
+}
+
+
+make_redcap_links <- function(data, rcon, 
+                              FORM  = "form_name", 
+                              ID    = "record_id", 
+                              EVENT = "event_id", 
+                              REP   = "repeat_inst", 
+                              FIELD = "field_name") {
+  stopifnot(is.data.frame(data))
+  
+  has_col <- function(col) col %in% names(data)
+  
+  data %>%
+    rowwise() %>%
+    mutate(
+      link = redcapAPI:::constructLinkToRedcapForm(
+        rcon,
+        form_name = .data[[FORM]],
+        record_id = .data[[ID]],
+        event_id  = if (has_col(EVENT)) .data[[EVENT]] else NULL
+      ),
+      link = if (has_col(REP) && !is.na(.data[[REP]])) {
+        paste0(link, "&instance=", .data[[REP]])
+      } else link,
+      link = if (has_col(FIELD)) {
+        glue::glue("{link}&fldfocus={.data[[FIELD]]}#{.data[[FIELD]]}-tr")
+      } else link,
+      record_id_link = as.character(
+        htmltools::tags$a(
+          href   = link,
+          target = "_blank",
+          .data[[ID]]
+        )
+      )
+    ) %>%
+    ungroup()
 }
