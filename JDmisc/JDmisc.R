@@ -14,6 +14,59 @@ j.scribe <- function(x, desc, scroll = TRUE) {
   else{Hmisc::html(Hmisc::describe(x, descript = desc), file = "", scroll = scroll)}
 }
 
+PDC.interval <- function(sub.dat, plotting  = FALSE, remove.last.fill = FALSE, remove.supply.on.switch = FALSE){
+  R <- nrow(sub.dat)
+  sub.dat <- within(sub.dat,{
+    for(i in 1:R){
+      fd[i] <- ifelse(i==1, 0, as.numeric(difftime(fdd[i], fdd[i-1])) + fd[i-1] )
+    }
+    
+    for(i in 1:R){  
+      # time between fills
+      tbf[i] <-  ifelse(i==R, as.numeric(difftime(end.dt[1],fdd[1])) - fd[i], fd[i+1] - fd[i])
+      
+      # gaps/ surplus at the beginning of an interval
+      x[i] <- fs[i] - tbf[i]
+      
+      # carryover / gap supply at the end of an interval
+      csa[i] <- ifelse(i==1, x[i], csb[i-1] + x[i])
+      
+      # days supply in the window
+      dsw[i] <- tbf[i] + (csa[i] < 0)*csa[i]
+      
+      # carryover supply only at the beginning of an interval
+      csb[i] <- csa[i]*(csa[i] > 0)
+      if(remove.supply.on.switch == TRUE){ ## This is the latest addition to function, if old code doesn't work--look here
+        if(switch[i]==1){csb[i] <- 0} # comment out if no switches
+      }
+      
+      # pdc calculation
+      pdc.i[i] <- dsw[i]/tbf[i]
+      
+      # fill number
+      fn[i] <- i
+      
+    }
+    # get denominator for whole window
+    end.dt.num <- as.numeric(difftime(end.dt[1],fdd[1]))  
+  })
+  ## don't know how/why the 'i' column is initialized
+  sub.dat$i <- NULL
+  
+  if(remove.last.fill==TRUE){
+    sub.dat <- sub.dat[1:(nrow(sub.dat)-1),]
+  }
+  
+  if(plotting== TRUE){
+    
+    sub.dat <- rbind(sub.dat, sub.dat[nrow(sub.dat),])
+    sub.dat[nrow(sub.dat), "fn"] <- nrow(sub.dat)
+    
+  }  
+  
+  sub.dat
+}
+
 
 #' Helper function to add factor labels
 #'
