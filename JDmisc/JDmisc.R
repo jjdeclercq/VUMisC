@@ -4,6 +4,10 @@ lw <- function(x) length(which(x))
 lu <- function(x) length(unique(x))
 med.iqr <- function(x) paste0(median(x)," (", quantile(x, 0.25), ", ",quantile(x, 0.75), ")")
 mean.sd <- function(x) paste0(round(mean(x),2)," (", round(sd(x), 2), ")")
+minmax <- function(x){
+  paste0(min(x, na.rm = TRUE), " - ", max(x, na.rm = TRUE))
+}
+
 ## easy yes-no of binary variables
 yesno <- function(logic) {ifelse(logic, "Yes", "No")}
 
