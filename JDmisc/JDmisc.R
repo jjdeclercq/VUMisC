@@ -1671,6 +1671,42 @@ jpub <- function(qmd, output, directory){
   file.copy(from = orig, to = paste0(local.dir,"/",of), overwrite = TRUE)
 }
 
+publish_to_teams <- function(qmd, output, directory){
+  ## qmd = "filename.qmd" 
+  ## Output is the quoted name for the output file, e.g. "Project X"
+  ## directory is the path to the VSP biostats report folder for the project
+  
+  ## Publish report to OneDrive for VSP (copied from vpn directory)
+  
+  local.dir <- paste0(getwd(),"/reports")
+  
+  if(!dir.exists(local.dir)){
+    dir.create(local.dir)
+  }
+  
+  teams.archive.dir <- paste0(directory,"/archive")
+  if(!dir.exists(teams.archive.dir)){
+    dir.create(teams.archive.dir)
+  }
+  
+  
+  of <- paste0(Sys.Date()," ", output, ".html" )
+  undated_file <- paste0(output, ".html" )
+  orig <- gsub("qmd|Rmd", "html", qmd)
+  
+  if(grepl("qmd", qmd)){
+    quarto::quarto_render(input = qmd)
+  }else{
+    # rmarkdown::render
+    rmarkdown::render(input = qmd)
+  }
+  
+  # # Quarto does not yet support rendering to different directory 
+  file.copy(from = orig, to = paste0(directory,"/",undated_file), overwrite = TRUE)
+  file.copy(from = orig, to = paste0(teams.archive.dir,"/",of), overwrite = TRUE)
+  file.copy(from = orig, to = paste0(local.dir,"/",of), overwrite = TRUE)
+}
+
 slugify <- function(text) {
   text <- tolower(text)
   text <- gsub(" ", "-", text)
