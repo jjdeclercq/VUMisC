@@ -1684,7 +1684,7 @@ publish_to_teams <- function(qmd, output, directory){
     dir.create(local.dir)
   }
   
-  teams.archive.dir <- paste0(directory,"/archive")
+  teams.archive.dir <- paste0(directory,"/reports")
   if(!dir.exists(teams.archive.dir)){
     dir.create(teams.archive.dir)
   }
