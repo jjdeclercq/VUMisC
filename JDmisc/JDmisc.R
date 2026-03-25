@@ -2116,3 +2116,270 @@ make_redcap_links <- function(data, rcon,
     ) %>%
     ungroup()
 }
+
+version_archive <- function(DAT) {
+  
+  timestamp  <- format(Sys.time(), "%Y.%m.%d %H.%M.%S")
+  dat_name   <- deparse(substitute(DAT))
+  root_path  <- file.path(getwd(), "archive")
+  archive_path <- file.path(root_path, dat_name)
+  
+  file_path <- file.path(
+    archive_path,
+    paste0(dat_name, " ", timestamp, ".rds")
+  )
+  
+  summary_path <- file.path(
+    archive_path,
+    paste0("archive_summary_", dat_name, ".rds")
+  )
+  
+  if (!dir.exists(root_path)) {
+    dir.create(root_path)
+  }
+  
+  if (!dir.exists(archive_path)) {
+    dir.create(archive_path)
+    
+    saveRDS(DAT, file_path, compress = "xz")
+    
+    archive_details <- data.frame(
+      path = file_path,
+      download.time = file.mtime(file_path),
+      rows = nrow(DAT),
+      cols = ncol(DAT),
+      n.diffs = 0
+    )
+    
+    saveRDS(archive_details, summary_path)
+    
+    message("Archive directory created at ", archive_path)
+    return(invisible(TRUE))
+  }
+  
+  ## Load archive summary safely
+  archive_details <- readRDS(summary_path)
+  
+  ## Identify most recent archive
+  recent_row <- archive_details[which.max(archive_details$download.time), ]
+  ARCHIVE <- readRDS(recent_row$path)
+  
+  ## Compare
+  if (isTRUE(all.equal(ARCHIVE, DAT, check.attributes = FALSE))) {
+    message("No changes made to data")
+    return(invisible(FALSE))
+  }
+  
+  ## Save new archive
+  saveRDS(DAT, file_path, compress = "xz")
+  
+  new_detail <- data.frame(
+    path = file_path,
+    download.time = file.mtime(file_path),
+    rows = nrow(DAT),
+    cols = ncol(DAT),
+    n.diffs = NA
+  )
+  
+  archive_details <- rbind(archive_details, new_detail)
+  saveRDS(archive_details, summary_path)
+  
+  message("New copy of data saved")
+  invisible(TRUE)
+}
+
+version_changelog <- function(dat, id.vars) {
+  
+  dat_name <- deparse(substitute(dat))
+  archive_path <- file.path(getwd(), "archive", dat_name)
+  
+  archive_summary_file <- file.path(
+    archive_path,
+    paste0("archive_summary_", dat_name, ".rds")
+  )
+  
+  changelog_output_file <- file.path(
+    archive_path,
+    paste0("changelog_output_", dat_name, ".rds")
+  )
+  
+  ## Load archive summary
+  archive_details <- readRDS(archive_summary_file)
+  
+  ## Determine comparisons to run (explicit, safe)
+  comparisons_to_run <- which(is.na(archive_details$n.diffs))
+  comparisons_to_run <- comparisons_to_run[comparisons_to_run > 1]
+  
+  if (length(comparisons_to_run) == 0) {
+    message("No comparisons needed")
+    return(invisible(FALSE))
+  }
+  
+  ## Initialize or load changelog output
+  if (file.exists(changelog_output_file)) {
+    
+    changelog_output <- readRDS(changelog_output_file)
+    
+    diffs_by_var <- changelog_output$diffs_by_var
+    diffs_by_id <- changelog_output$diffs_by_id
+    summary_comp_table <- changelog_output$summary_comp_table
+    vars_not_shared <- changelog_output$vars_not_shared
+    
+  } else {
+    
+    diffs_by_var <- data.frame()
+    diffs_by_id <- data.frame()
+    summary_comp_table <- data.frame()
+    vars_not_shared <- data.frame()
+    
+  }
+  
+  ## Run comparisons
+  for (i in comparisons_to_run) {
+    
+    p1 <- readRDS(archive_details$path[i])
+    p2 <- readRDS(archive_details$path[i - 1])
+    
+    stopifnot(all(id.vars %in% names(p1)))
+    
+    Cc <- arsenal::comparedf(p1, p2, by = id.vars)
+    sCc <- summary(Cc)
+    
+    archive_details$n.diffs[i] <- arsenal::n.diffs(Cc)
+    
+    diffs_by_var <- rbind(
+      diffs_by_var,
+      diffs(Cc, by.var = TRUE) |>
+        dplyr::filter(n > 0 | NAs > 0) |>
+        dplyr::mutate(
+          x = archive_details$download.time[i],
+          y = archive_details$download.time[i - 1],
+          comparison = paste0(i, " vs ", i - 1)
+        ) |>
+        dplyr::select(comparison, var = var.x, n, NAs)
+    )
+    
+    diffs_by_id <- rbind(
+      diffs_by_id,
+      diffs(Cc) |>
+        dplyr::mutate(
+          x = archive_details$download.time[i],
+          y = archive_details$download.time[i - 1],
+          comparison = paste0(i, " vs ", i - 1)
+        ) |>
+        dplyr::select(all_of(id.vars), comparison, var = var.x, x, values.x, values.y)
+    )
+    
+    summary_comp_table <- rbind(
+      summary_comp_table,
+      sCc$comparison.summary.table |>
+        dplyr::mutate(comparison = paste0(i, " vs ", i - 1))
+    )
+    
+    vars_not_shared <- rbind(
+      vars_not_shared,
+      sCc$vars.ns.table |>
+        dplyr::mutate(comparison = paste0(i, " vs ", i - 1))
+    )
+  }
+  
+  ## Save outputs atomically
+  saveRDS(
+    list(
+      diffs_by_var = diffs_by_var,
+      diffs_by_id = diffs_by_id,
+      summary_comp_table = summary_comp_table,
+      vars_not_shared = vars_not_shared
+    ),
+    changelog_output_file
+  )
+  
+  saveRDS(archive_details, archive_summary_file)
+  
+  message(length(comparisons_to_run), " comparisons run.")
+  message("Summaries saved to: ", changelog_output_file)
+  
+  invisible(TRUE)
+}
+
+
+version_retrieve <- function(dat, wd = getwd()) {
+  
+  summary_file <- file.path(
+    wd,
+    "archive",
+    dat,
+    paste0("archive_summary_", dat, ".rds")
+  )
+  
+  if (!file.exists(summary_file)) {
+    stop("Archive summary not found: ", summary_file)
+  }
+  
+  readRDS(summary_file)
+}
+
+
+version_report <- function(dat_name, wd = getwd()) {
+  
+  archive_path <- file.path(wd, "archive", dat_name)
+  
+  changelog_file <- file.path(
+    archive_path,
+    paste0("changelog_output_", dat_name, ".rds")
+  )
+  
+  if (!file.exists(changelog_file)) {
+    stop("Changelog output not found: ", changelog_file)
+  }
+  
+  ## Load changelog output
+  changelog_output <- readRDS(changelog_file)
+  
+  ## Build overview table
+  overview <- version_retrieve(dat_name, wd = wd) |>
+    dplyr::arrange(download.time) |>
+    dplyr::mutate(order = dplyr::row_number()) |>
+    dplyr::select(order, download.time, rows, cols, n.diffs)
+  
+  ## Assemble report object
+  report_object <- c(
+    list("Overview" = overview),
+    changelog_output
+  )
+  
+  ## Apply friendly names if structure matches expectations
+  if (length(report_object) == 5) {
+    names(report_object) <- c(
+      "Overview",
+      "Differences by variable",
+      "Differences by ID",
+      "Comparison summary",
+      "Variables not shared"
+    )
+  }
+  
+  report_object
+}
+
+
+check_redcap_updates <- function(filename, rcon) {
+  
+  ## Determine reference time
+  begin_time <- if (file.exists(filename)) {
+    file.mtime(filename)
+  } else {
+    as.POSIXct("1970-01-01", tz = "UTC")
+  }
+  
+  ## Query REDCap logging
+  check_log <- redcapAPI::exportLogging(
+    rcon      = rcon,
+    beginTime = begin_time,
+    endTime   = Sys.time(),
+    logType   = "record"
+  )
+  
+  ## Keep only record-level changes
+  dplyr::filter(check_log, !is.na(record))
+}
