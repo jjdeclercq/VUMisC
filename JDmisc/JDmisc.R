@@ -2383,3 +2383,129 @@ check_redcap_updates <- function(filename, rcon) {
   ## Keep only record-level changes
   dplyr::filter(check_log, !is.na(record))
 }
+
+## Utility function to create publication pathway
+
+paste_pub <- function(file, pub = params$publish_dir){
+  paste0(pub, '/', file)
+}
+
+
+### save exclusions as an attribute to df
+consort_filter <- function(df, ..., .attr = "consort") {
+  exprs <- rlang::enquos(...)
+  if (length(exprs) == 0) {
+    stop("At least one filter expression must be supplied")
+  }
+  
+  # Evaluate predicates ONCE on original data
+  masks <- lapply(exprs, function(e) {
+    rlang::eval_tidy(e, df)
+  })
+  
+  # Sanity checks
+  bad <- !vapply(masks, is.logical, logical(1))
+  if (any(bad)) {
+    stop("All expressions must evaluate to logical vectors")
+  }
+  
+  # Cumulative inclusion (no subsetting)
+  cum_masks <- Reduce(`&`, masks, accumulate = TRUE)
+  
+  # CONSORT counts
+  n <- c(
+    Initial = nrow(df),
+    vapply(cum_masks, function(x) sum(x, na.rm = TRUE), integer(1))
+
+  )
+  
+  
+  expr_labels <- vapply(exprs, rlang::as_label, character(1))
+  
+  
+  nm <- names(exprs)
+  nm[nm == "" | is.na(nm)] <- expr_labels[nm == "" | is.na(nm)]
+  
+  steps <- c("Initial", nm)
+  
+  expr_col <- c(NA_character_, expr_labels)
+  
+  
+  consort <- tibble::tibble(
+    step = steps,
+    expr = expr_col,
+    n = n,
+    excluded = dplyr::lag(n) - n
+  )
+  
+  # Final subset ONCE
+  df_final <- df[cum_masks[[length(cum_masks)]], , drop = FALSE]
+  
+  # Attach silently
+  attr(df_final, .attr) <- consort
+  
+  
+  df_final
+}
+
+
+consort_filter <- function(df, ..., .attr = "consort") {
+  exprs <- rlang::enquos(...)
+  if (length(exprs) == 0) {
+    stop("At least one filter expression must be supplied")
+  }
+  
+  # --- Evaluate predicates ONCE and make them NA-safe ---
+  masks <- lapply(exprs, function(e) {
+    out <- rlang::eval_tidy(e, df)
+    
+    if (!is.logical(out)) {
+      stop("All expressions must evaluate to logical vectors")
+    }
+    
+    # Enforce TRUE/FALSE only (NA -> FALSE)
+    out %in% TRUE
+  })
+  
+  # --- Cumulative inclusion ---
+  cum_masks <- Reduce(`&`, masks, accumulate = TRUE)
+  
+  # --- CONSORT counts (NA-safe by construction now) ---
+  n <- c(
+    Initial = nrow(df),
+    vapply(cum_masks, function(x) sum(x), integer(1))
+  )
+  
+  # --- Labels (robust) ---
+  expr_labels <- vapply(exprs, rlang::as_label, character(1))
+  nm <- names(exprs)
+  
+  if (is.null(nm)) {
+    nm <- expr_labels
+  } else {
+    missing <- nm == "" | is.na(nm)
+    nm[missing] <- expr_labels[missing]
+  }
+  
+  steps <- c("Initial", nm)
+  expr_col <- c(NA_character_, expr_labels)
+  
+  # --- CONSORT table ---
+  consort <- tibble::tibble(
+    step = steps,
+    expr = expr_col,
+    n = n,
+    excluded = dplyr::lag(n) - n
+  )
+  
+  # --- Final subset (explicitly NA-safe) ---
+  final_mask <- cum_masks[[length(cum_masks)]]
+  df_final <- df[final_mask, , drop = FALSE]
+  
+  # --- Attach attribute ---
+  attr(df_final, .attr) <- consort
+  
+  df_final
+}
+
+
