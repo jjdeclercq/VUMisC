@@ -2495,8 +2495,8 @@ consort_filter <- function(df, ..., .attr = "consort") {
     step = steps,
     expr = expr_col,
     n = n,
-    excluded = dplyr::lag(n) - n
-  )
+    excluded = dplyr::lag(n, default = dplyr::first(n)) - n
+  )  %>% mutate(total_exclusion = cumsum(excluded))
   
   # --- Final subset (explicitly NA-safe) ---
   final_mask <- cum_masks[[length(cum_masks)]]
