@@ -2391,62 +2391,6 @@ paste_pub <- function(file, pub = params$publish_dir){
 }
 
 
-### save exclusions as an attribute to df
-consort_filter <- function(df, ..., .attr = "consort") {
-  exprs <- rlang::enquos(...)
-  if (length(exprs) == 0) {
-    stop("At least one filter expression must be supplied")
-  }
-  
-  # Evaluate predicates ONCE on original data
-  masks <- lapply(exprs, function(e) {
-    rlang::eval_tidy(e, df)
-  })
-  
-  # Sanity checks
-  bad <- !vapply(masks, is.logical, logical(1))
-  if (any(bad)) {
-    stop("All expressions must evaluate to logical vectors")
-  }
-  
-  # Cumulative inclusion (no subsetting)
-  cum_masks <- Reduce(`&`, masks, accumulate = TRUE)
-  
-  # CONSORT counts
-  n <- c(
-    Initial = nrow(df),
-    vapply(cum_masks, function(x) sum(x, na.rm = TRUE), integer(1))
-
-  )
-  
-  
-  expr_labels <- vapply(exprs, rlang::as_label, character(1))
-  
-  
-  nm <- names(exprs)
-  nm[nm == "" | is.na(nm)] <- expr_labels[nm == "" | is.na(nm)]
-  
-  steps <- c("Initial", nm)
-  
-  expr_col <- c(NA_character_, expr_labels)
-  
-  
-  consort <- tibble::tibble(
-    step = steps,
-    expr = expr_col,
-    n = n,
-    excluded = dplyr::lag(n) - n
-  )
-  
-  # Final subset ONCE
-  df_final <- df[cum_masks[[length(cum_masks)]], , drop = FALSE]
-  
-  # Attach silently
-  attr(df_final, .attr) <- consort
-  
-  
-  df_final
-}
 
 
 consort_filter <- function(df, ..., .attr = "consort") {
@@ -2508,4 +2452,317 @@ consort_filter <- function(df, ..., .attr = "consort") {
   df_final
 }
 
+check_data <- function (d, checks, id) 
+{   
+  # Borrowed extensively from FHarrell's qreport::dataChk
+  omit0 = TRUE
+  byid = TRUE
+  jj <- list()
+  s <- NULL
+  X <- Dat <- list()
+  
+  
+  for (i in 1:length(checks)) {
+    x <- checks[i]
+    nx <- names(x)
+    cx <- as.character(x)
+    if(is.null(nx)) nx <- cx
+    else if(nx %in% '') nx <- cx
+    cx <- gsub("%between% c\\((.*?)\\)", "[\\1]", cx)
+    form <- as.formula(paste("~", cx))
+    vars.involved <- all.vars(form)
+    z <- d[eval(x), c(id, vars.involved), with = FALSE]
+    
+    no <- nrow(z)
+    if (byid && no > 0) {
+      Da <- z[, id, with = FALSE]
+      Da[, `:=`(Check, cx)]
+      Da[, `:=`(Name, nx)]
+      Da[, `:=`(Values, do.call(paste,c(z[, vars.involved, with = FALSE], list(sep = ", "))))]
+      Da$vars <- toString(vars.involved)
+      Dat[[cx]] <- Da
+    }
+    s <- rbind(s, data.frame(Name = nx, Check = cx, n = no))
+  }
+  
+  Dat <- rbindlist(Dat, fill = TRUE)
+  
+  return(list(s = s, d = Dat))
+}
+
+
+
+expand_redcap_dictionary <- function(rcon) {
+  
+  # ---- Error checking ----#
+  if (missing(rcon) || is.null(rcon)) {
+    stop("`rcon` must be provided and cannot be NULL.")
+  }
+  
+  required_methods <- c("metadata", "mapping", "instruments", "events", "repeatInstrumentEvent")
+  missing_methods <- required_methods[!required_methods %in% names(rcon)]
+  
+  if (length(missing_methods) > 0) {
+    stop(
+      sprintf(
+        "Invalid REDCap connection object. Missing methods: %s",
+        paste(missing_methods, collapse = ", ")
+      )
+    )
+  }
+  
+  # ---- Pull supporting tables ----#
+  redcap_instruments <- rcon$instruments()
+  
+  repeating <- rcon$repeatInstrumentEvent() %>%
+    dplyr::pull(form_name) %>%
+    unique()
+  
+  # ---- Build expanded dictionary ----#
+  expanded_dict <- rcon$metadata() %>%
+    dplyr::mutate(no = dplyr::row_number()) %>%
+    dplyr::select(
+      field_name,
+      form = form_name,
+      branching_logic,
+      required_field,
+      field_type,
+      no
+    ) %>%
+    dplyr::mutate(
+      repeat_inst = ifelse(form %in% repeating, "Yes", "No")
+    ) %>%
+    dplyr::left_join(
+      rcon$mapping(),
+      by = "form",
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::left_join(
+      redcap_instruments,
+      by = c("form" = "instrument_name")
+    )
+  
+  return(expanded_dict)
+}
+
+format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_instance", FORM = "form", ID){
+  
+  OUT <- checks %>% 
+    {  if ("status" %in% names(.)) dplyr::filter(., status == "Open") 
+      else . } %>% 
+    separate_rows(., c("Values", "vars"), sep = ", ")  %>%
+    left_join(., dictionary, by = c("vars" = "field_name")) %>%
+    format_redcap_info(., REP= REP, FORM = FORM) %>%
+    make_redcap_links(., rcon = rcon, FORM = FORM, ID = ID, FIELD = "vars") %>% 
+    rowwise() %>% 
+    mutate(field_link = as.character(
+      htmltools::tags$a(
+        href   = link,
+        target = "_blank",
+        vars))) %>% 
+    ungroup() %>% 
+    mutate(X = paste(paste0("<b>",field_link, "</b>"), Values, sep = ": "))  %>%
+    group_by(Name, !!!rlang::syms(ID), across(any_of("check_ID")))  %>%
+    summarise(fields = paste(X, collapse = "<br>"), .groups = "drop") %>%
+    as.data.frame()
+  
+  j.reactable(OUT, columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
+  
+}
+
+
+
+track_checks <- function(current_checks,
+                         checks_path,
+                         id_var) {
+  
+  library(dplyr)
+  library(lubridate)
+  library(readxl)
+  library(writexl)
+  
+  #---------------------------#
+  # 0. Setup
+  #---------------------------#
+  keys <- c(id_var, "Check", "Name", "Values", "vars")
+  today_date <- today()
+  
+  #---------------------------#
+  # 1. Define canonical schema
+  #---------------------------#
+  schema <- tibble(
+    mrn = character(),
+    Check = character(),
+    Name = character(),
+    Values = character(),
+    vars = character(),
+    date_opened = as.Date(character()),
+    date_closed = as.Date(character()),
+    verified = character(),
+    status = character(),
+    check_ID = integer(),
+    Notes = character()
+  )
+  
+  # Helper: coerce types + ensure all columns exist
+  enforce_schema <- function(df) {
+    df %>%
+      mutate(
+        across(all_of(keys), as.character),
+        date_opened = as.Date(date_opened),
+        date_closed = as.Date(date_closed),
+        verified    = as.character(verified),
+        status      = as.character(status),
+        check_ID    = as.integer(check_ID),
+        Notes       = as.character(Notes)
+      ) %>%
+      bind_rows(schema[0, ]) %>%   # ensures missing cols exist
+      select(names(schema))        # enforce column order
+  }
+  
+  # Ensure keys are character in current data
+  current_checks <- current_checks %>%
+    mutate(across(all_of(keys), as.character))
+  
+  #=====================================================#
+  # 2. INITIALIZE (no history file exists)
+  #=====================================================#
+  if (!file.exists(checks_path)) {
+    
+    checks_history <- current_checks %>%
+      distinct(across(all_of(keys))) %>%   # avoid accidental duplicates
+      mutate(
+        check_ID    = row_number(),
+        date_opened = today_date,
+        date_closed = as.Date(NA),
+        verified    = NA_character_,
+        Notes       = NA_character_,
+        status      = "Open"
+      ) %>%
+      enforce_schema()
+    
+    write_xlsx(list(History = checks_history), checks_path)
+    
+    message("Data checks history created in ", checks_path)
+    return(checks_history)
+  }
+  
+  #=====================================================#
+  # 3. LOAD + PREP HISTORY
+  #=====================================================#
+  full_history <- read_xlsx(checks_path, sheet = "History") %>%
+    enforce_schema()
+  
+  # Preserve max ID across ALL history (including verified)
+  max_id <- max(full_history$check_ID, na.rm = TRUE)
+  if (is.infinite(max_id)) max_id <- 0
+  
+  # Split verified vs active
+  checks_verified <- full_history %>% filter(!is.na(verified))
+  checks_history  <- full_history %>% filter(is.na(verified))
+  
+  #=====================================================#
+  # 4. CLASSIFY STATES
+  #=====================================================#
+  
+  # New issues (in current, not in history)
+  new_iss <- anti_join(current_checks, checks_history,
+                       by = join_by(mrn, Check, Name, Values, vars)) %>%
+    select(all_of(keys)) %>%
+    mutate(
+      date_opened = today_date,
+      date_closed = as.Date(NA),
+      verified    = NA_character_,
+      Notes       = NA_character_,
+      check_ID    = NA_integer_,
+      status      = "Open"
+    ) %>%
+    enforce_schema()
+  
+  # Closed issues (in history, not in current)#
+  close_iss <- anti_join(checks_history, current_checks,
+                         by = join_by(mrn, Check, Name, Values, vars)) %>%
+    mutate(
+      date_closed = coalesce(date_closed, today_date),
+      status      = "Closed"
+    ) %>%
+    enforce_schema()
+  
+  # Still open issues (present in both)
+  still_iss <- inner_join(checks_history, current_checks,
+                          by = join_by(mrn, Check, Name, Values, vars)) %>%
+    mutate(status = "Open") %>%
+    enforce_schema()
+  
+  # Verified issues (carried forward unchanged except closing date)
+  verif_iss <- checks_verified %>%
+    mutate(
+      date_closed = coalesce(date_closed, today_date),
+      status      = "Verified"
+    ) %>%
+    enforce_schema()
+  
+  #=====================================================#
+  # 5. COMBINE ALL STATES
+  #=====================================================#
+  new_checks_history <- bind_rows(
+    new_iss,
+    close_iss,
+    still_iss,
+    verif_iss
+  )
+  
+  #=====================================================#
+  # 6. ASSIGN IDS (deterministic for new issues only)
+  #=====================================================#
+  new_checks_history <- new_checks_history %>%
+    mutate(
+      check_ID = if_else(
+        is.na(check_ID),
+        max_id + cumsum(is.na(check_ID)),
+        check_ID
+      )
+    ) %>% 
+    mutate(status = factor(status, levels = c("Open", "Verified", "Closed"))) %>% 
+    arrange(status, check_ID) %>% 
+    select(check_ID, everything(), verified, Notes)
+  
+  #=====================================================#
+  # 7. WRITE + RETURN
+  #=====================================================#
+  write_xlsx(list(History = new_checks_history), checks_path)
+  
+  return(new_checks_history)
+}
+
+format_dq_summary <- function(S, history){
+  
+  left_join(
+    S,
+    history %>% count(Name, status) %>% pivot_wider(., names_from = "status", values_from = "n", values_fill = 0),
+    join_by(Name)) %>% 
+    mutate(across(any_of(c("Open", "Closed", "Verified")), \(x) replace_na(x, 0))) %>% select(-n)
+  
+  
+}
+
+
+
+transpose_checks <- function(L){
+  
+  # If L is a single object (not a list of results), wrap it
+  if (!is.list(L) || (all(c("s", "d") %in% names(L)))) {
+    L <- list(L)
+  }
+  
+  L <- list_transpose(L)
+  S <- bind_rows(L$s)
+  D <- bind_rows(L$d)
+  
+  if(is.null(D)|nrow(D)==0){
+    D <- data.frame(Name = "No failed data checks")
+  }
+  
+  return(list(S = S, D = D))
+}
 
