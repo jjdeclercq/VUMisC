@@ -2591,7 +2591,7 @@ track_checks <- function(current_checks,
   # 1. Define canonical schema
   #---------------------------#
   schema <- tibble(
-    mrn = character(),
+    !!!setNames(rep(list(character()), length(id_var)), id_var),
     Check = character(),
     Name = character(),
     Values = character(),
@@ -2608,7 +2608,7 @@ track_checks <- function(current_checks,
   enforce_schema <- function(df) {
     df %>%
       mutate(
-        across(all_of(keys), as.character),
+        across(any_of(keys), as.character),
         date_opened = as.Date(date_opened),
         date_closed = as.Date(date_closed),
         verified    = as.character(verified),
@@ -2622,7 +2622,7 @@ track_checks <- function(current_checks,
   
   # Ensure keys are character in current data
   current_checks <- current_checks %>%
-    mutate(across(all_of(keys), as.character))
+    mutate(across(any_of(keys), as.character))
   
   #=====================================================#
   # 2. INITIALIZE (no history file exists)
@@ -2630,7 +2630,7 @@ track_checks <- function(current_checks,
   if (!file.exists(checks_path)) {
     
     checks_history <- current_checks %>%
-      distinct(across(all_of(keys))) %>%   # avoid accidental duplicates
+      distinct(across(any_of(keys))) %>%   # avoid accidental duplicates
       mutate(
         check_ID    = row_number(),
         date_opened = today_date,
@@ -2665,10 +2665,14 @@ track_checks <- function(current_checks,
   # 4. CLASSIFY STATES
   #=====================================================#
   
+  ## Cases where not all IDs are in all sets
+  common_ids <- intersect(id_var, intersect(names(checks_history), names(current_checks)))
+  joinery <- c(common_ids, 'Check', 'Name', 'Values', 'vars')
+  
   # New issues (in current, not in history)
   new_iss <- anti_join(current_checks, checks_history,
-                       by = join_by(mrn, Check, Name, Values, vars)) %>%
-    select(all_of(keys)) %>%
+                       by = joinery) %>%
+    select(any_of(keys)) %>%
     mutate(
       date_opened = today_date,
       date_closed = as.Date(NA),
@@ -2679,9 +2683,10 @@ track_checks <- function(current_checks,
     ) %>%
     enforce_schema()
   
+  
   # Closed issues (in history, not in current)#
   close_iss <- anti_join(checks_history, current_checks,
-                         by = join_by(mrn, Check, Name, Values, vars)) %>%
+                         by = joinery) %>%
     mutate(
       date_closed = coalesce(date_closed, today_date),
       status      = "Closed"
@@ -2690,7 +2695,7 @@ track_checks <- function(current_checks,
   
   # Still open issues (present in both)
   still_iss <- inner_join(checks_history, current_checks,
-                          by = join_by(mrn, Check, Name, Values, vars)) %>%
+                          by = joinery) %>%
     mutate(status = "Open") %>%
     enforce_schema()
   
