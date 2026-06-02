@@ -2694,8 +2694,9 @@ track_checks <- function(current_checks,
     enforce_schema()
   
   # Still open issues (present in both)
-  still_iss <- inner_join(checks_history, current_checks,
-                          by = joinery) %>%
+  
+  still_iss <- inner_join(checks_history, current_checks, by = joinery) %>%
+    anti_join(checks_verified, by = joinery) %>%
     mutate(status = "Open") %>%
     enforce_schema()
   
