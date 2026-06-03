@@ -2670,7 +2670,7 @@ track_checks <- function(current_checks,
   joinery <- c(common_ids, 'Check', 'Name', 'Values', 'vars')
   
   # New issues (in current, not in history)
-  new_iss <- anti_join(current_checks, checks_history,
+  new_iss <- anti_join(current_checks, full_history,
                        by = joinery) %>%
     select(any_of(keys)) %>%
     mutate(
@@ -2685,7 +2685,7 @@ track_checks <- function(current_checks,
   
   
   # Closed issues (in history, not in current)#
-  close_iss <- anti_join(checks_history, current_checks,
+  close_iss <- anti_join(full_history, current_checks,
                          by = joinery) %>%
     mutate(
       date_closed = coalesce(date_closed, today_date),
@@ -2740,6 +2740,8 @@ track_checks <- function(current_checks,
   
   return(new_checks_history)
 }
+
+
 
 format_dq_summary <- function(S, history){
   
