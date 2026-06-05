@@ -2549,7 +2549,13 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
   
   OUT <- checks %>% 
     {  if ("status" %in% names(.)) dplyr::filter(., status == "Open") 
-      else . } %>% 
+      else . } 
+  
+  if(nrow(OUT)==0){
+  return(data.frame(Message = "No open checks remain") %>% jgtt())
+  } else{
+  
+    OUT %>% 
     separate_rows(., c("Values", "vars"), sep = ", ")  %>%
     left_join(., dictionary, by = c("vars" = "field_name")) %>%
     format_redcap_info(., REP= REP, FORM = FORM) %>%
@@ -2564,9 +2570,11 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
     mutate(X = paste(paste0("<b>",field_link, "</b>"), Values, sep = ": "))  %>%
     group_by(Name, !!!rlang::syms(ID), across(any_of("check_ID")))  %>%
     summarise(fields = paste(X, collapse = "<br>"), .groups = "drop") %>%
-    as.data.frame()
-  
-  j.reactable(OUT, columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
+    as.data.frame() %>% 
+      j.reactable(OUT, columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
+
+    
+  }
   
 }
 
