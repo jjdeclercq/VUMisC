@@ -2571,7 +2571,7 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
     group_by(Name, !!!rlang::syms(ID), across(any_of("check_ID")))  %>%
     summarise(fields = paste(X, collapse = "<br>"), .groups = "drop") %>%
     as.data.frame() %>% 
-      j.reactable(OUT, columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
+      j.reactable(., columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
 
     
   }
