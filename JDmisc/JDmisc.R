@@ -1029,7 +1029,7 @@ date_dists <- function(dat, included.ids = NULL, id.var = "record_id", n_include
   }
 
   dat %>% clear.labels()%>% ungroup() %>% 
-    {if(!is.null(included.ids)) filter(., record_id %in% included.ids) else . } %>%
+    {if(!is.null(included.ids)) filter(., !!sym(id.var) %in% included.ids) else . } %>%
     select(!!sym(id.var), where(is.Date))%>%
     pivot_longer(., c(-!!sym(id.var)), values_drop_na = TRUE) %>%
     arrange(name, value) %>% group_by(name) %>%
