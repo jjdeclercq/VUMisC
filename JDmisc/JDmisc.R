@@ -2568,7 +2568,7 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
         vars))) %>% 
     ungroup() %>% 
     mutate(X = paste(paste0("<b>",field_link, "</b>"), Values, sep = ": "))  %>%
-    group_by(Name, !!!rlang::syms(ID), across(any_of("check_ID")))  %>%
+    group_by(Name, !!!rlang::syms(ID), across(any_of(REP)), across(any_of("check_ID")))  %>%
     summarise(fields = paste(X, collapse = "<br>"), .groups = "drop") %>%
     as.data.frame() %>% 
       j.reactable(., columns = list(fields = colDef(html = TRUE) ), groupBy = "Name")
@@ -2589,15 +2589,27 @@ track_checks <- function(current_checks,
   library(readxl)
   library(writexl)
   
-  #---------------------------#
+
   # 0. Setup
-  #---------------------------#
   keys <- c(id_var, "Check", "Name", "Values", "vars")
   today_date <- today()
   
-  #---------------------------#
+  # If no open checks, then create empty df with same schema
+  if(all(dim(current_checks) == c(1,1))){
+    
+    current_checks <- tibble(
+      !!!setNames(rep(list(character()), length(id_var)), id_var),
+      Check = character(),
+      Name = character(),
+      Values = character(),
+      vars = character()
+    )
+    
+  }
+  
+  
+
   # 1. Define canonical schema
-  #---------------------------#
   schema <- tibble(
     !!!setNames(rep(list(character()), length(id_var)), id_var),
     Check = character(),
@@ -2632,9 +2644,9 @@ track_checks <- function(current_checks,
   current_checks <- current_checks %>%
     mutate(across(any_of(keys), as.character))
   
-  #=====================================================#
+
   # 2. INITIALIZE (no history file exists)
-  #=====================================================#
+
   if (!file.exists(checks_path)) {
     
     checks_history <- current_checks %>%
@@ -2655,9 +2667,8 @@ track_checks <- function(current_checks,
     return(checks_history)
   }
   
-  #=====================================================#
   # 3. LOAD + PREP HISTORY
-  #=====================================================#
+
   full_history <- read_xlsx(checks_path, sheet = "History") %>%
     enforce_schema()
   
@@ -2669,9 +2680,8 @@ track_checks <- function(current_checks,
   checks_verified <- full_history %>% filter(!is.na(verified))
   checks_history  <- full_history %>% filter(is.na(verified))
   
-  #=====================================================#
+
   # 4. CLASSIFY STATES
-  #=====================================================#
   
   ## Cases where not all IDs are in all sets
   common_ids <- intersect(id_var, intersect(names(checks_history), names(current_checks)))
@@ -2716,9 +2726,8 @@ track_checks <- function(current_checks,
     ) %>%
     enforce_schema()
   
-  #=====================================================#
   # 5. COMBINE ALL STATES
-  #=====================================================#
+
   new_checks_history <- bind_rows(
     new_iss,
     close_iss,
@@ -2726,9 +2735,7 @@ track_checks <- function(current_checks,
     verif_iss
   )
   
-  #=====================================================#
   # 6. ASSIGN IDS (deterministic for new issues only)
-  #=====================================================#
   new_checks_history <- new_checks_history %>%
     mutate(
       check_ID = if_else(
@@ -2741,9 +2748,8 @@ track_checks <- function(current_checks,
     arrange(status, check_ID) %>% 
     select(check_ID, everything(), verified, Notes)
   
-  #=====================================================#
+
   # 7. WRITE + RETURN
-  #=====================================================#
   write_xlsx(list(History = new_checks_history), checks_path)
   
   return(new_checks_history)

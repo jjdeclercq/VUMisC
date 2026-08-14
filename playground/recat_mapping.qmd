@@ -1,0 +1,122 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(dplyr)
+require(knitr)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(labelVector)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+require(redcapAPI)
+require(readxl)
+require(purrr)
+require(data.table)
+require(magrittr)
+require(glue)
+require(crosstalk)
+
+
+
+
+create_recat_file <- function(data, var, directory = "recategorize") {
+
+  out <- data %>%
+    dplyr::count(.data[[var]], name = "n") %>%
+    dplyr::mutate(
+      !!paste0(var, "_recat") := NA_character_
+    )
+
+  writexl::write_xlsx(
+    out,
+    file.path(directory, paste0(var, ".xlsx"))
+  )
+
+  invisible(out)
+}
+
+recat_summary <- function(directory) {
+
+  files <- list.files(
+    directory,
+    pattern = "\\.(csv|xlsx)$",
+    full.names = TRUE
+  )
+
+  if (length(files) == 0) {
+    return(tibble::tibble())
+  }
+
+  purrr::map_dfr(files, function(file) {
+
+    recat_file <-
+      if (grepl("\\.csv$", file, ignore.case = TRUE)) {
+        readr::read_csv(file, show_col_types = FALSE)
+      } else {
+        readxl::read_excel(file)
+      }
+
+    original_var <- names(recat_file)[1]
+
+    recat_file %>%
+      dplyr::mutate(variable = original_var) %>%
+      dplyr::rename(original_value = !!rlang::sym(original_var)) %>%
+      tidyr::pivot_longer(
+        -c(variable, original_value, n),
+        names_to = "new_variable",
+        values_to = "recategorized"
+      ) %>%
+      dplyr::group_by(
+        new_variable,
+        recategorized
+      ) %>%
+      dplyr::mutate(
+        recat_n = sum(n, na.rm = TRUE)
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(
+        variable,
+        original_value,
+        original_n = n,
+        new_variable,
+        recategorized,
+        recat_n
+      ) %>%
+      dplyr::arrange(
+        variable,
+        new_variable
+      )
+
+  })
+
+}
+
+
+# create_recat_file(penguins, "island")
+
+Hmisc::label(penguins$species) <- "SPECIES"
+
+Hmisc::label(penguins$island) <- "ISLAND"
+
+
+new_penguins <- apply_recats(penguins, paste0(getwd(),"/recategorize"))
+
+new_penguins %>% select(species, species_recat, island, island_recat) %>% jgt()
+
+recat_summary(paste0(getwd(),"/recategorize")) %>% j.reactable(., groupBy = "variable")
+
+
+```
