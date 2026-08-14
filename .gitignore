@@ -7,7 +7,7 @@
 dist/
 .cache.RData
 .Ruserdata
-.xlsx
+*.xlsx
 
 archive/
 *.png
