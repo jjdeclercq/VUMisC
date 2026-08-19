@@ -2788,3 +2788,180 @@ transpose_checks <- function(L){
   return(list(S = S, D = D))
 }
 
+
+create_recat_file <- function(data, var, directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
+  
+  if(!dir.exists(recat_dir)){
+    dir.create(recat_dir)
+    
+    cat("New folder created at ", recat_dir)
+  }
+  
+  out <- data %>%
+    dplyr::count(.data[[var]], name = "n") %>%
+    dplyr::mutate(
+      !!paste0(var, "_recat") := NA_character_
+    )
+  
+  writexl::write_xlsx(
+    out,
+    file.path(recat_dir, paste0(var, ".xlsx"))
+  )
+  
+  invisible(out)
+}
+
+apply_recats <- function(data, directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
+  
+  files <- list.files(
+    recat_dir,
+    pattern = "\\.xlsx$",
+    full.names = TRUE
+  )
+  
+  if (length(files) == 0) {
+    return(data)
+  }
+  
+  for (file in files) {
+    
+    map <- readxl::read_excel(file)
+    
+    if (ncol(map) < 2) {
+      warning(
+        sprintf(
+          "Skipping '%s': needs at least 2 columns.",
+          basename(file)
+        )
+      )
+      next
+    }
+    
+    original_var <- names(map)[1]
+    
+    if (!original_var %in% names(data)) {
+      warning(
+        sprintf(
+          "Skipping '%s': '%s' not found in data.",
+          basename(file),
+          original_var
+        )
+      )
+      next
+    }
+    
+    original_label <- Hmisc::label(data[[original_var]])
+    
+    # Remove count column if present
+    map <- map |>
+      dplyr::select(
+        -dplyr::any_of(c("n", "N"))
+      )
+    
+    recat_vars <- setdiff(names(map), original_var)
+    
+    # Create temporary join keys
+    map <- map |>
+      dplyr::mutate(
+        .join_key = stringr::str_squish(
+          as.character(.data[[original_var]])
+        )
+      )
+    
+    data <- data |>
+      dplyr::mutate(
+        .join_key = stringr::str_squish(
+          as.character(.data[[original_var]])
+        )
+      )
+    
+    # Drop original variable from map to avoid duplicate columns
+    map_join <- map |>
+      dplyr::select(
+        -.data[[original_var]]
+      )
+    
+    data <- data |>
+      dplyr::left_join(
+        map_join,
+        by = ".join_key"
+      ) |>
+      dplyr::select(
+        -.join_key
+      )
+    
+    # Label recategorized variables
+    if (!identical(original_label, "") &&
+        !is.null(original_label)) {
+      
+      for (recat_var in recat_vars) {
+        
+        Hmisc::label(data[[recat_var]]) <-paste0(original_label," (recategorized)")
+      }
+    }
+  }
+  
+  data
+}
+
+recat_summary <- function(directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
+  
+  files <- list.files(
+    recat_dir,
+    pattern = "\\.(csv|xlsx)$",
+    full.names = TRUE
+  )
+  
+  if (length(files) == 0) {
+    return(tibble::tibble())
+  }
+  
+  purrr::map_dfr(files, function(file) {
+    
+    recat_file <-
+      if (grepl("\\.csv$", file, ignore.case = TRUE)) {
+        readr::read_csv(file, show_col_types = FALSE)
+      } else {
+        readxl::read_excel(file)
+      }
+    
+    original_var <- names(recat_file)[1]
+    
+    recat_file %>%
+      dplyr::mutate(variable = original_var) %>%
+      dplyr::rename(original_value = !!rlang::sym(original_var)) %>%
+      tidyr::pivot_longer(
+        -c(variable, original_value, n),
+        names_to = "new_variable",
+        values_to = "recategorized"
+      ) %>%
+      dplyr::group_by(
+        new_variable,
+        recategorized
+      ) %>%
+      dplyr::mutate(
+        recat_n = sum(n, na.rm = TRUE)
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(
+        variable,
+        original_value,
+        original_n = n,
+        new_variable,
+        recategorized,
+        recat_n
+      ) %>%
+      dplyr::arrange(
+        variable,
+        new_variable
+      )
+    
+  })
+  
+}

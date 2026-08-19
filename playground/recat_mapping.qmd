@@ -1,10 +1,41 @@
 ---
-title: "Untitled"
-format: html
-editor: visual
+title: "A reproducible workflow for collaborative data recategorization"
+author:
+- Josh DeClercq
+- Department of Biostatistics
+- Vanderbilt University Medical Center
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: false
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+self-contained: true
+
 ---
 
 ```{r}
+#| include: false
+
 require(Hmisc)
 require(rms)
 require(ggplot2)
@@ -21,18 +52,41 @@ require(gt)
 require(reactable)
 require(reactablefmtr)
 require(htmltools)
-require(redcapAPI)
 require(readxl)
 require(purrr)
-require(data.table)
 require(magrittr)
 require(glue)
-require(crosstalk)
 
 
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/heads/main/JDmisc/JDmisc.R")
+```
 
+# Background
 
-create_recat_file <- function(data, var, directory = "recategorize") {
+Often in the course of data cleaning, categorical variables with many unique values are often condensed in to fewer categories to make them better suited for analysis. Sometimes, the distinction is clear and can be done with little or no collaborator input (e.g. insurance categories regrouped as government or commercial). When the distinction is not obvious, the collaborator will need to provide a crosswalk from the original values to the new values.
+
+What this system does is streamlines the hand off of data to be categorized to the collaborator, and from the collaborator back into the analysis code. It does this according to the following workflow:
+
+- Generates a new directory "recategorize" in the specified directory
+- Creates an excel file for each field to be recategorized
+- The collaborator then fills in the mapping for each field
+- A function parses every file in the directory and joins each recategorized field back to the data
+- A summary function is provided to see the mappings for each recategorized field
+
+## Functions
+
+### create_recat_file
+
+```{r}
+create_recat_file <- function(data, var, directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
+  
+  if(!dir.exists(recat_dir)){
+    dir.create(recat_dir)
+    
+    cat("New folder created at ", recat_dir)
+  }
 
   out <- data %>%
     dplyr::count(.data[[var]], name = "n") %>%
@@ -42,16 +96,121 @@ create_recat_file <- function(data, var, directory = "recategorize") {
 
   writexl::write_xlsx(
     out,
-    file.path(directory, paste0(var, ".xlsx"))
+    file.path(recat_dir, paste0(var, ".xlsx"))
   )
 
   invisible(out)
 }
+```
 
-recat_summary <- function(directory) {
+### apply_recats
+
+```{r}
+apply_recats <- function(data, directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
 
   files <- list.files(
-    directory,
+    recat_dir,
+    pattern = "\\.xlsx$",
+    full.names = TRUE
+  )
+
+  if (length(files) == 0) {
+    return(data)
+  }
+
+  for (file in files) {
+
+    map <- readxl::read_excel(file)
+
+    if (ncol(map) < 2) {
+      warning(
+        sprintf(
+          "Skipping '%s': needs at least 2 columns.",
+          basename(file)
+        )
+      )
+      next
+    }
+
+    original_var <- names(map)[1]
+
+    if (!original_var %in% names(data)) {
+      warning(
+        sprintf(
+          "Skipping '%s': '%s' not found in data.",
+          basename(file),
+          original_var
+        )
+      )
+      next
+    }
+
+    original_label <- Hmisc::label(data[[original_var]])
+
+    # Remove count column if present
+    map <- map |>
+      dplyr::select(
+        -dplyr::any_of(c("n", "N"))
+      )
+
+    recat_vars <- setdiff(names(map), original_var)
+
+    # Create temporary join keys
+    map <- map |>
+      dplyr::mutate(
+        .join_key = stringr::str_squish(
+          as.character(.data[[original_var]])
+        )
+      )
+
+    data <- data |>
+      dplyr::mutate(
+        .join_key = stringr::str_squish(
+          as.character(.data[[original_var]])
+        )
+      )
+
+    # Drop original variable from map to avoid duplicate columns
+    map_join <- map |>
+      dplyr::select(
+        -.data[[original_var]]
+      )
+
+    data <- data |>
+      dplyr::left_join(
+        map_join,
+        by = ".join_key"
+      ) |>
+      dplyr::select(
+        -.join_key
+      )
+
+    # Label recategorized variables
+    if (!identical(original_label, "") &&
+        !is.null(original_label)) {
+
+      for (recat_var in recat_vars) {
+
+        Hmisc::label(data[[recat_var]]) <-paste0(original_label," (recategorized)")
+      }
+    }
+  }
+
+  data
+}
+```
+
+### recat summary
+
+```{r}
+recat_summary <- function(directory = getwd()) {
+  
+  recat_dir <- file.path(directory, "recategorize")
+
+  files <- list.files(
+    recat_dir,
     pattern = "\\.(csv|xlsx)$",
     full.names = TRUE
   )
@@ -103,20 +262,51 @@ recat_summary <- function(directory) {
   })
 
 }
+```
 
+# Workflow
 
+## Initialize directory and files
+
+```{r}
+# create_recat_file(penguins, "species")
 # create_recat_file(penguins, "island")
+```
 
+First time output: "New folder created at /Users/joshdeclercq/Documents/GitHub/VUMisC/playground/recategorize"
+
+Re-running function will overwrite excel
+
+## Edit the excel files
+
+This works through joins, so do not edit original data in any way
+
+```{r}
+readxl::read_xlsx("recategorize/species.xlsx") %>% jgtt()
+```
+
+Any number of recategorizations is allowed:
+
+```{r}
+readxl::read_xlsx("recategorize/island.xlsx") %>% jgtt()
+```
+
+## Apply recategorizations
+
+Code automatically copies the original label over, and appends "(recategorized)" to the end of the label
+```{r}
 Hmisc::label(penguins$species) <- "SPECIES"
-
 Hmisc::label(penguins$island) <- "ISLAND"
 
 
-new_penguins <- apply_recats(penguins, paste0(getwd(),"/recategorize"))
+new_penguins <- apply_recats(penguins)
 
-new_penguins %>% select(species, species_recat, island, island_recat) %>% jgt()
+new_penguins %>% select(species, species_recat, island, island_recat, island_recat_2) %>% jgt()
 
-recat_summary(paste0(getwd(),"/recategorize")) %>% j.reactable(., groupBy = "variable")
+```
 
 
+## Summary of recategorizations
+```{r}
+recat_summary() %>% j.reactable(., groupBy = "variable")
 ```
