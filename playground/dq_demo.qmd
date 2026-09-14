@@ -1,0 +1,217 @@
+---
+title: "Data quality demonstration"
+author:
+- Josh DeClercq
+- Department of Biostatistics
+- Vanderbilt University Medical Center
+date: today
+format:
+  html:
+    grid: 
+      body-width: 1250px
+      sidebar-width: 250px
+      margin-width: 200px
+    toc: true
+    mainfont: albertus
+    theme: flatly
+    html-table-processing: none
+    fig-align: center
+    fig-width: 8
+    fig-height: 6
+toc-location: left
+toc-depth: 3
+execute:
+  echo: true
+  eval: true
+  warning: false
+number-sections: true
+monobackgroundcolor: "#EFF7EFDF"
+code-fold: false
+code-block-bg: "#EFF7EFDF"
+code-block-border-left: "#BADBCB"
+self-contained: true
+
+---
+
+```{r}
+#| include: false
+
+require(Hmisc)
+require(rms)
+require(ggplot2)
+require(lubridate)
+require(dplyr)
+require(knitr)
+require(tidyr)
+require(stringr)
+require(forcats)
+require(labelVector)
+require(plotly)
+require(gtsummary)
+require(gt)
+require(reactable)
+require(reactablefmtr)
+require(htmltools)
+require(readxl)
+require(purrr)
+require(magrittr)
+require(glue)
+
+
+devtools::source_url("https://raw.githubusercontent.com/jjdeclercq/VUMisC/refs/heads/main/JDmisc/JDmisc.R")
+```
+
+
+
+# Objective
+
+**Clean the data**
+
+Data are messy. Clean data are critical for any serious analysis. Cleaning data can be a lengthy process that usually involves plenty of back and forth with collaborators. This creates opportunities for miscommunications, oversights, forgetfulness, as well as the potential for major headaches when an outside reviewer asks, "Hey, what's this?"
+
+The goal of this set of tools is to:
+
+  - Provide the analyst with a streamlined approach to creating and evaluating data quality rules
+  - Embed a dashboard-like summary in existing reporting output that is useful for both the analyst and the collaborator
+  - Create an external database that tracks when data quality checks appear and are corrected, as well as a framework for data that are verified incorrect
+  
+This work is specific to REDCap data.
+
+# How it works
+
+## The data
+
+A REDCap API connection using the redcapAPI R package is required.
+
+**Important - API Export and Project Setup/Design user privileges are required in REDCap**
+  
+  
+```{r}
+## Load in redcap data
+options(keyring_backend=keyring::backend_file) # Put in .Rprofile
+redcapAPI::unlockREDCap(
+  c(dq_demo_key = "dq_demo_key"),
+  keyring = "jd_keyring3",
+  envir = globalenv(),
+  url = 'https://redcap.vumc.org/api/')
+
+dq_rc <- redcapAPI::exportRecordsTyped(rcon = dq_demo_key, 
+                cast = list(checkbox = redcapAPI::castCheckLabel)) %>%
+        clear.label.class()
+
+## Some minor data cleaning
+## Dates
+dq_rc <- dq_rc %>% mutate(across(where(is.POSIXct), ymd))
+
+## Checkbox fields
+dq_rc <- rca_checkbox_fix(dq_demo_key, dq_rc)
+
+dq_rc <- dq_rc %>% mutate(survey_time = ac(survey_time))
+
+## Separate data based on different redcap events
+dqd <- rca_instrument(dq_rc, instrument = 'Build a Survey with Biostats') 
+dqp <- rca_instrument(dq_rc)
+```
+
+
+## Create data checks
+```{r}
+demo_checks <- expression( 
+  "Missing hard warning" = is.na(ex_hard_warning),
+  "Hard warning out of range" = ex_hard_warning < 90 | ex_hard_warning >= 100,
+  "Survey filled out on phone, don't watch youtube" = device_type == "Phone" & is.na(pet_video_loc___1)
+  )
+
+post_checks <- expression(
+  "Requestee not missing" = !is.na(requestee)
+)
+
+```
+
+## Evaluate logic
+```{r}
+A <- check_data(data.table::as.data.table(dqd), demo_checks, id= c("record_id", "redcap_repeat_instance"))
+B <- check_data(data.table::as.data.table(dqp), post_checks, id= c("record_id"))
+
+
+current_checks <- transpose_checks(list(A, B))
+```
+
+## Track checks
+```{r}
+checks_path <- paste0(getwd(), "/Data Checks.xlsx")
+demo_checks_history <- track_checks(current_checks$D, checks_path = checks_path, id_var = c("record_id", "redcap_repeat_instance") )
+```
+
+## Format checks
+
+
+**expand_redcap_dictionary needs to incorporate $events()**
+```{r takeda-51 }
+expanded_dict <- expand_redcap_dictionary(dq_demo_key) %>% left_join(., dq_demo_key$events(), by = "unique_event_name")
+```
+
+
+```{r}
+list(
+  Summary = format_dq_summary(current_checks$S, demo_checks_history) %>% jgtt(),
+  Detail = format_dq_checks(demo_checks_history, dq_demo_key, dictionary = expanded_dict, ID= "record_id", REP= "redcap_repeat_instance")) %>%
+jreport()
+
+```
+
+
+# Missing data summary   {#missing-data-summary-2026-05-26}
+
+
+::: panel-tabset  
+## By Record ID
+
+
+
+
+```{r takeda-51b }
+mst <- missingSummary(dq_demo_key)
+MST <- mst %>% filter(n_missing >0) %>% 
+  separate_rows(., "missing", sep = ",") %>%
+  mutate(missing= trimws(missing)) %>%
+  select(-n_missing) %>% rename(field_name = missing) %>%
+  left_join(., expanded_dict, by = "field_name") %>%
+  format_redcap_info(., REP= "redcap_repeat_instance", FORM = "form") %>%
+  make_redcap_links(., rcon = dq_demo_key, FORM = "form", ID = "record_id")
+
+MST %>%
+  select(record_id_link,field_name,record_id,redcap_info, Branching = branching_logic) %>%
+  j.reactable(.,col.names = FALSE, columns = list(
+                                                  Branching = colDef(html = TRUE, width = 300),
+                                                  redcap_info = colDef(html = TRUE, width = 200),
+                                record_id_link = colDef(html = TRUE, width = 80)),
+              defaultExpanded = FALSE, pagination = FALSE, height = 500, groupBy = "record_id")
+
+```
+
+
+## By field name  
+
+```{r takeda-52 }
+MST %>%
+  select(record_id_link,field_name,redcap_info, Branching = branching_logic) %>%
+  j.reactable(.,col.names = FALSE, columns = list(
+                                                  Branching = colDef(html = TRUE, width = 300),
+                                                  redcap_info = colDef(html = TRUE, width = 200),
+                                record_id_link = colDef(html = TRUE, width = 80)),
+              defaultExpanded = FALSE, pagination = FALSE, height = 500, groupBy = "field_name")
+
+```
+
+:::
+
+
+```{r}
+# C <- check_data(data.table::as.data.table(dq_rc), combine_checks, id= c("record_id", "redcap_repeat_instance"))
+# combine_checks <- expression(
+#   "Survey requested, but no pets selected" = any(redcap_event_name == "Post-Demo (Arm 1: Arm 1)" & !is.na(requestee) ) &
+#                                               (redcap_event_name == "Demo (Arm 1: Arm 1)" & pets_yn == "No")
+# )
+```
+

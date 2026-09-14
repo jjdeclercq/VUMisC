@@ -2557,7 +2557,9 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
   
     OUT %>% 
     separate_rows(., c("Values", "vars"), sep = ", ")  %>%
+      mutate(vars = sub("___\\d+$", "", vars)) %>% ## Match checkbox fields back to redcap 
     left_join(., dictionary, by = c("vars" = "field_name")) %>%
+      
     format_redcap_info(., REP= REP, FORM = FORM) %>%
     make_redcap_links(., rcon = rcon, FORM = FORM, ID = ID, FIELD = "vars") %>% 
     rowwise() %>% 
