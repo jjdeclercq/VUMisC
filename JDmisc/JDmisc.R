@@ -2561,7 +2561,7 @@ format_dq_checks <- function(checks, rcon, dictionary, REP= "redcap_repeat_insta
     left_join(., dictionary, by = c("vars" = "field_name")) %>%
       
     format_redcap_info(., REP= REP, FORM = FORM) %>%
-    make_redcap_links(., rcon = rcon, FORM = FORM, ID = ID, FIELD = "vars") %>% 
+    make_redcap_links(., rcon = rcon, FORM = FORM, ID = ID, FIELD = "vars", REP = REP) %>% 
     rowwise() %>% 
     mutate(field_link = as.character(
       htmltools::tags$a(
