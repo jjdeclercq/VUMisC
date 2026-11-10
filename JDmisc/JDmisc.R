@@ -2690,7 +2690,7 @@ track_checks <- function(current_checks,
   joinery <- c(common_ids, 'Check', 'Name', 'Values', 'vars')
   
   # New issues (in current, not in history)
-  new_iss <- anti_join(current_checks, full_history,
+  new_iss <- anti_join(current_checks, checks_history,
                        by = joinery) %>%
     select(any_of(keys)) %>%
     mutate(
@@ -2705,11 +2705,22 @@ track_checks <- function(current_checks,
   
   
   # Closed issues (in history, not in current)#
-  close_iss <- anti_join(full_history, current_checks,
-                         by = joinery) %>%
+  # close_iss <- anti_join(full_history, current_checks,
+  #                        by = joinery) %>%
+  #   mutate(
+  #     date_closed = coalesce(date_closed, today_date),
+  #     status      = "Closed"
+  #   ) %>%
+  #   enforce_schema()
+  
+  close_iss <- anti_join(
+    checks_history,
+    current_checks,
+    by = joinery
+  ) %>%
     mutate(
       date_closed = coalesce(date_closed, today_date),
-      status      = "Closed"
+      status = "Closed"
     ) %>%
     enforce_schema()
   
@@ -2749,6 +2760,10 @@ track_checks <- function(current_checks,
     mutate(status = factor(status, levels = c("Open", "Verified", "Closed"))) %>% 
     arrange(status, check_ID) %>% 
     select(check_ID, everything(), verified, Notes)
+  
+  ## Make sure no duplicates
+  new_checks_history <- new_checks_history %>%
+    distinct()
   
 
   # 7. WRITE + RETURN
