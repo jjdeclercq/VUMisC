@@ -2690,16 +2690,19 @@ track_checks <- function(current_checks,
   joinery <- c(common_ids, 'Check', 'Name', 'Values', 'vars')
   
   # New issues (in current, not in history)
-  new_iss <- anti_join(current_checks, checks_history,
-                       by = joinery) %>%
+  new_iss <- anti_join(
+    current_checks,
+    full_history,
+    by = joinery
+  ) %>%
     select(any_of(keys)) %>%
     mutate(
       date_opened = today_date,
       date_closed = as.Date(NA),
-      verified    = NA_character_,
-      Notes       = NA_character_,
-      check_ID    = NA_integer_,
-      status      = "Open"
+      verified = NA_character_,
+      Notes = NA_character_,
+      check_ID = NA_integer_,
+      status = "Open"
     ) %>%
     enforce_schema()
   
